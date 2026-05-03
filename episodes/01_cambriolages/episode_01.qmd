@@ -1,0 +1,252 @@
+---
+title: "Épisode 1 — Les cambriolages, ou pourquoi 'la France dangereuse' est une illusion statistique"
+subtitle: "L'illusion des petits nombres, série en 10 actes"
+author: "Sacha Zaouati"
+date: today
+format:
+  html:
+    toc: true
+    code-fold: true
+    theme: cosmo
+execute:
+  warning: false
+  message: false
+---
+
+## Le constat
+
+[À RÉDIGER : voir `redactions.md` (à côté) — section §1. Trois versions disponibles, à mélanger.]
+
+![L'effet visuel : courbes nettes à gauche (peu d'habitants, peu de cambriolages possibles) ; nuage diffus à droite (grande population, taux qui se stabilise)](empreinte_vs_nuage.svg)
+
+## La méthode
+
+```{r setup}
+library(duckdb)
+library(DBI)
+library(dplyr)
+library(ggplot2)
+library(scales)
+library(plotly)
+library(htmlwidgets)
+
+con <- dbConnect(duckdb::duckdb(), dbdir = ":memory:")
+
+# Chemins relatifs depuis episodes/01_cambriolages/ vers data/
+csv_path <- "../../data/delinquance/donnee-data.gouv-2025-geographie2025-produit-le2026-02-03.csv"
+
+dbExecute(con, sprintf("
+  CREATE VIEW delinquance AS
+  SELECT * FROM read_csv_auto('%s', delim=';', decimal_separator=',', header=true)
+", csv_path))
+```
+
+```{r cog}
+# Téléchargement (et mise en cache) du Code Officiel Géographique INSEE
+# pour récupérer les libellés des communes
+cog_url  <- "https://www.insee.fr/fr/statistiques/fichier/8377162/v_commune_2025.csv"
+cog_path <- "../../data/referentiels/v_commune_2025.csv"
+if (!file.exists(cog_path)) {
+  dir.create("../../data/referentiels", recursive = TRUE, showWarnings = FALSE)
+  download.file(cog_url, cog_path, mode = "wb")
+}
+
+dbExecute(con, sprintf("
+  CREATE VIEW cog AS
+  SELECT * FROM read_csv_auto('%s', header=true)
+", cog_path))
+```
+
+```{r data}
+# Extraction cambriolages 2024 + jointure avec libellés communes
+cambri <- dbGetQuery(con, "
+  SELECT
+    d.CODGEO_2025 AS code_commune,
+    c.LIBELLE     AS nom_commune,
+    c.DEP         AS departement,
+    CAST(d.insee_pop AS DOUBLE) AS population,
+    CAST(d.nombre AS DOUBLE)    AS nb_cambriolages,
+    CAST(REPLACE(d.taux_pour_mille, ',', '.') AS DOUBLE) AS taux_pour_mille
+  FROM delinquance d
+  LEFT JOIN cog c ON d.CODGEO_2025 = c.COM
+  WHERE d.indicateur = 'Cambriolages de logement'
+    AND d.annee = '2024'
+    AND d.est_diffuse = 'diff'
+    AND d.insee_pop > 0
+")
+
+cat("Communes analysées :", nrow(cambri), "\n")
+cat("Population totale couverte :", format(sum(cambri$population), big.mark = " "), "\n")
+cat("Cambriolages totaux :", format(sum(cambri$nb_cambriolages), big.mark = " "), "\n")
+```
+
+## Le graphique
+
+```{r graphique}
+#| fig-width: 10
+#| fig-height: 6
+#| fig-cap: "Taux de cambriolages 2024 selon la taille de la commune. Chaque point = une commune."
+
+ggplot(cambri, aes(x = population, y = taux_pour_mille)) +
+  geom_point(alpha = 0.15, size = 0.5, color = "#4A9EBD") +
+  scale_x_log10(
+    breaks = c(100, 300, 1000, 10000, 100000),
+    labels = c("100", "300", "1 000", "10 000", "100 000")
+  ) +
+  scale_y_continuous(limits = c(0, quantile(cambri$taux_pour_mille, 0.99, na.rm = TRUE))) +
+  geom_vline(xintercept = c(100, 300, 1000, 10000),
+             linetype = "dotted", color = "grey50") +
+  labs(
+    title = "L'empreinte digitale des petits nombres",
+    subtitle = "Cambriolages 2024 par commune — la dispersion explose à gauche",
+    x = "Population (échelle logarithmique)",
+    y = "Cambriolages pour 1 000 habitants",
+    caption = "Source : SSMSI / data.gouv.fr • Analyse : Sacha Zaouati"
+  ) +
+  theme_minimal(base_size = 12)
+```
+
+## Le graphique interactif
+
+Survolez n'importe quel point pour voir le nom de la commune, sa population
+et son nombre de cambriolages. Filtrez par strate de population avec la
+légende.
+
+```{r plotly-interactif}
+#| fig-width: 10
+#| fig-height: 6.5
+
+# Création de strates de population pour le code couleur et le filtrage
+cambri_plot <- cambri |>
+  mutate(
+    strate = case_when(
+      population <    300 ~ "1. < 300 hab. (effet petits nombres maximal)",
+      population <  1000 ~ "2. 300 – 1 000 hab.",
+      population < 10000 ~ "3. 1 000 – 10 000 hab.",
+      population < 100000 ~ "4. 10 000 – 100 000 hab.",
+      TRUE ~ "5. > 100 000 hab. (loi des grands nombres)"
+    ),
+    hover_text = sprintf(
+      "<b>%s</b> (%s)<br>Population : %s hab.<br>Cambriolages 2024 : %d<br>Taux : %.1f ‰",
+      nom_commune, departement,
+      format(population, big.mark = " "),
+      as.integer(nb_cambriolages),
+      taux_pour_mille
+    )
+  ) |>
+  filter(taux_pour_mille <= quantile(taux_pour_mille, 0.995, na.rm = TRUE))
+
+palette_strates <- c(
+  "1. < 300 hab. (effet petits nombres maximal)" = "#FF6B6B",
+  "2. 300 – 1 000 hab."                     = "#FFB347",
+  "3. 1 000 – 10 000 hab."                  = "#4A9EBD",
+  "4. 10 000 – 100 000 hab."                = "#5DADE2",
+  "5. > 100 000 hab. (loi des grands nombres)"   = "#1F4E79"
+)
+
+p <- plot_ly(
+  data = cambri_plot,
+  x = ~population,
+  y = ~taux_pour_mille,
+  type = "scatter",
+  mode = "markers",
+  color = ~strate,
+  colors = palette_strates,
+  text = ~hover_text,
+  hoverinfo = "text",
+  marker = list(size = 5, opacity = 0.55,
+                line = list(width = 0))
+) |>
+  layout(
+    title = list(
+      text = "<b>L'empreinte digitale des petits nombres</b><br><sup>Cambriolages 2024 par commune — survolez les points pour explorer</sup>",
+      x = 0.02, xanchor = "left",
+      font = list(family = "Inter, Helvetica", size = 16)
+    ),
+    xaxis = list(
+      title = "Population (échelle logarithmique)",
+      type = "log",
+      tickvals = c(100, 300, 1000, 10000, 100000, 1000000),
+      ticktext = c("100", "300", "1 000", "10 000", "100 000", "1 M"),
+      gridcolor = "#E0E0E0"
+    ),
+    yaxis = list(
+      title = "Cambriolages pour 1 000 habitants",
+      gridcolor = "#E0E0E0"
+    ),
+    legend = list(
+      orientation = "h",
+      x = 0, y = -0.18,
+      font = list(size = 10)
+    ),
+    margin = list(b = 100),
+    annotations = list(
+      list(
+        x = 0.5, y = 1.05, xref = "paper", yref = "paper",
+        text = "Source : SSMSI / data.gouv.fr — Analyse : Sacha Zaouati",
+        showarrow = FALSE,
+        font = list(size = 10, color = "#888")
+      )
+    )
+  )
+
+# Sauvegarde en HTML autonome (à uploader sur GitHub Pages pour iframe Substack)
+saveWidget(p, "graphique_interactif_cambriolages.html",
+           selfcontained = TRUE,
+           title = "L'empreinte digitale des petits nombres")
+
+p
+```
+
+## Le palmarès trompeur
+
+```{r palmares-classique}
+top10_brut <- cambri |>
+  filter(nb_cambriolages > 0) |>
+  arrange(desc(taux_pour_mille)) |>
+  head(10) |>
+  select(nom_commune, departement, population, nb_cambriolages, taux_pour_mille)
+
+knitr::kable(top10_brut,
+             digits = 1,
+             caption = "Top 10 brut : les communes au plus fort taux de cambriolages 2024.",
+             col.names = c("Commune", "Dép.", "Population", "Cambriolages", "‰ habitants"))
+```
+
+[À RÉDIGER : voir `redactions.md` — section §2.]
+
+## La correction statistique : le vrai classement
+
+```{r palmares-corrige}
+top10_corrige <- cambri |>
+  filter(population >= 10000) |>
+  arrange(desc(taux_pour_mille)) |>
+  head(10) |>
+  select(nom_commune, departement, population, nb_cambriolages, taux_pour_mille)
+
+knitr::kable(top10_corrige,
+             digits = 1,
+             caption = "Top 10 corrigé (communes ≥ 10 000 habitants) : un classement informatif.",
+             col.names = c("Commune", "Dép.", "Population", "Cambriolages", "‰ habitants"))
+```
+
+[À RÉDIGER : voir `redactions.md` — section §3.]
+
+## Ce que ça raconte de plus large
+
+[À RÉDIGER : voir `redactions.md` — section §4.]
+
+## Note méthodologique
+
+[À RÉDIGER : voir `redactions.md` — section §5.]
+
+```{r exports, include=FALSE}
+# Exports CSV pour Datawrapper et publication GitHub
+write.csv(cambri,        "cambriolages_2024.csv", row.names = FALSE)
+write.csv(top10_brut,    "top10_brut.csv",        row.names = FALSE)
+write.csv(top10_corrige, "top10_corrige.csv",     row.names = FALSE)
+```
+
+```{r cleanup, include=FALSE}
+dbDisconnect(con, shutdown = TRUE)
+```

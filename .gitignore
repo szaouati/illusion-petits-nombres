@@ -1,0 +1,44 @@
+# =====================================================================
+# Données brutes volumineuses — exclues car > 100 Mo (limite GitHub)
+# =====================================================================
+data/delinquance/*.csv
+
+# Référentiels téléchargés automatiquement par les scripts
+data/referentiels/
+
+# =====================================================================
+# Outputs régénérés à chaque rendu Quarto
+# =====================================================================
+episodes/*/episode_*.html
+episodes/*/graphique_interactif_*.html
+episodes/*/*_files/
+episodes/*/*_cache/
+episodes/*/cambriolages_*.csv
+episodes/*/lycees_*.csv
+episodes/*/top10_*.csv
+
+# =====================================================================
+# Brouillons de rédaction (privés)
+# =====================================================================
+episodes/*/redactions.md
+
+# =====================================================================
+# Espace Notion (privé, contient pricing et templates commerciaux)
+# =====================================================================
+notion/
+
+# =====================================================================
+# Anciens dossiers en attente de suppression manuelle dans Finder
+# =====================================================================
+_OLD_*
+
+# =====================================================================
+# Système / RStudio
+# =====================================================================
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+.Rapp.history
+.DS_Store
+*.Rproj

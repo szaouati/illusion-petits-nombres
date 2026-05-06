@@ -64,21 +64,32 @@ La presse française publie en permanence des classements de communes, lycées, 
 ├── CLAUDE.md                       ← ce fichier
 ├── README.md                       ← présentation publique
 ├── .gitignore
+├── build.R                         ← script de build de docs/ (Pages)
 ├── data/
 │   ├── delinquance/                ← base SSMSI (593 Mo, gitignorée)
 │   ├── lycees/                     ← résultats Bac par académie
 │   ├── sante/                      ← inventaire data.gouv santé
 │   └── referentiels/               ← COG INSEE (téléchargé auto, gitignoré)
-├── episodes/
+├── episodes/                       ← SOURCES CANONIQUES par épisode
 │   └── 01_cambriolages/
-│       ├── episode_01.qmd          ← le rapport reproductible
+│       ├── episode_01.qmd          ← rapport reproductible (HTML + PDF)
 │       ├── redactions.md           ← brouillons (PRIVÉ, gitignoré)
 │       ├── empreinte_vs_nuage.svg  ← schéma explicatif
-│       └── (régénérés au rendu)    HTML, graphique interactif, CSV exports
+│       ├── scrollytelling/         ← page autonome (HTML + 10 SVG + scripts R)
+│       └── (régénérés au rendu)    HTML, PDF, graphique interactif, CSV
 ├── scripts/                        ← scripts d'exploration ad-hoc
 ├── notion/                         ← structure Notion (PRIVÉ, gitignoré)
-└── The-Data-Journalism-Handbook-1.pdf, -2.pdf  ← références
+├── docs/                           ← VERSION PUBLIQUE servie par GitHub Pages
+│   ├── .nojekyll                   ← désactive Jekyll (sinon les `_files/` Quarto ne sont pas servis)
+│   ├── index.html                  ← page d'accueil de la série
+│   └── episode-01/                 ← copie du scrollytelling, peuplé par build.R
+│       ├── index.html
+│       ├── R/
+│       └── svg/
+└── The-Data-Journalism-Handbook-1.pdf, -2.pdf  ← références (gitignorées, copyright)
 ```
+
+**Règle d'or** : `episodes/` contient les sources, `docs/` contient ce qui est servi en public. On ne modifie JAMAIS `docs/` à la main — `docs/` est régénéré par `Rscript build.R` à la racine du dépôt. `docs/.nojekyll` doit toujours exister (sinon GitHub Pages applique Jekyll qui ignore certains fichiers commençant par `_`).
 
 ---
 
@@ -203,22 +214,25 @@ Pour toute rédaction de paragraphe, section, encart, légende ou note méthodol
 **Épisode 01 — cambriolages**
 - [x] Pipeline R/Quarto + graphiques statiques + plotly interactif
 - [x] Page scrollytelling autonome (`episodes/01_cambriolages/scrollytelling/index.html` + 10 SVG + 3 scripts R)
-- [x] Article long format rédigé (cf. `article_episode_01_pour_notebooklm.pdf`)
+- [x] Contenu rédigé du PDF intégré dans `episode_01.qmd` (le `.qmd` redevient la source canonique ; le PDF de design est conservé en archive)
+- [x] YAML du `.qmd` en multi-format (HTML + PDF via `quarto render`)
 - [x] Funnel plot Spiegelhalter posé en local (`funnel_plot_spiegelhalter.png/svg`)
 - [ ] Intégrer dans l'article les deux corrections statistiques pointées dans `Relecture 1.md` (hypothèse de communes identiques + mécanisme de la régression vers la moyenne)
 - [ ] Intégrer l'encart « défense des palmarès » (yardstick competition Besley & Case 1995, Burgess et al. au Pays de Galles) — déjà drafté dans `Relecture 1.md`
-- [ ] Trancher : `scrollytelling/` vs `scrollytelling-v2-interactif/` — garder l'un, archiver ou supprimer l'autre
+- [ ] Insérer dans le `.qmd` le funnel plot Spiegelhalter (chunk + commentaire)
 - [ ] Ajouter un palmarès *Empirical Bayes* (`ebbr`) en complément du seuil ≥ 10 000, à présenter en note méthodologique
 - [ ] Audit accessibilité du graphique principal (alt text, simulation daltonisme avec `colorblindr`)
+- [ ] Trancher : `scrollytelling/` (canonique) vs `scrollytelling-v2-interactif/` (test à améliorer plus tard) — la décision actuelle est : `scrollytelling/` est canonique
 - [ ] **Bug structure** : déplacer le CSV SSMSI 593 Mo de `episodes/01_cambriolages/` vers `data/delinquance/` et corriger le chemin dans `episode_01.qmd`
 
 **Infrastructure projet**
 - [x] `CLAUDE.md` à la racine
+- [x] Skill custom `.claude/skills/nouvel-episode/SKILL.md`
+- [x] Dossier `docs/` à la racine + `.nojekyll` + page d'accueil
+- [x] Script `build.R` à la racine pour peupler `docs/episode-XX/` depuis `episodes/XX_thème/scrollytelling/`
+- [ ] Activer GitHub Pages côté serveur : Settings > Pages > Source: `main` branch + dossier `/docs`. Attendre 1-10 min, vérifier l'URL `https://sachazaouati.github.io/illusion-petits-nombres/`
 - [ ] Initialiser `renv` à la racine
 - [ ] Créer `theme_petits_nombres.R` à la racine (palette + thème ggplot factorisés)
-- [ ] Activer GitHub Pages (Settings > Pages > Source: `main` branch + dossier `/docs`) — voir explications dans la conversation Cowork de cadrage
-- [ ] Créer un dossier `docs/` à la racine et y déplacer (ou y copier au build) le scrollytelling + le graphique plotly de chaque épisode, pour exposition publique des iframes Substack
-- [x] Skill custom `.claude/skills/nouvel-episode/SKILL.md`
 
 **Épisodes suivants**
 - [ ] Lancer la rédaction de l'épisode 02 (Lycées) — données dans `data/lycees/fr-en-baccalaureat-par-academie.csv`

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>L'illusion des petits nombres — Sacha Zaouati</title>
+  <meta name="description" content="Une série de dix enquêtes datajournalistiques sur la loi des petits nombres dans la presse française.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bleu-nuit: #1F4E79;
+      --rouge: #FF6B6B;
+      --gris-text: #222;
+      --gris-doux: #555;
+      --gris-clair: #999;
+      --gris-tres-clair: #eee;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, Helvetica, sans-serif;
+      max-width: 720px;
+      margin: 80px auto 60px;
+      padding: 0 24px;
+      color: var(--gris-text);
+      line-height: 1.6;
+      font-weight: 400;
+    }
+    .surtitre {
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-size: 0.78em;
+      color: var(--rouge);
+      font-weight: 600;
+      margin-bottom: 0.6em;
+    }
+    h1 {
+      font-size: 2.6em;
+      line-height: 1.05;
+      margin: 0 0 0.4em;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+    .lede {
+      font-size: 1.15em;
+      color: var(--gris-doux);
+      margin-bottom: 2em;
+      font-style: italic;
+    }
+    p { margin: 1em 0; }
+    h2 {
+      margin-top: 2.5em;
+      font-size: 1.25em;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 1em;
+      font-size: 0.98em;
+    }
+    th, td {
+      text-align: left;
+      padding: 12px 8px;
+      border-bottom: 1px solid var(--gris-tres-clair);
+    }
+    th {
+      font-weight: 600;
+      color: var(--gris-doux);
+      font-size: 0.82em;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .num {
+      color: var(--gris-clair);
+      font-variant-numeric: tabular-nums;
+      width: 36px;
+      font-weight: 500;
+    }
+    .statut-publie { color: var(--bleu-nuit); font-weight: 600; }
+    .statut-venir  { color: var(--gris-clair); font-weight: 400; }
+    a {
+      color: var(--bleu-nuit);
+      text-decoration: none;
+      border-bottom: 1px solid var(--bleu-nuit);
+      transition: color 0.15s, border-color 0.15s;
+    }
+    a:hover { color: var(--rouge); border-bottom-color: var(--rouge); }
+    footer {
+      margin-top: 4em;
+      padding-top: 1.5em;
+      border-top: 1px solid var(--gris-tres-clair);
+      color: var(--gris-clair);
+      font-size: 0.88em;
+    }
+    footer p { margin: 0.4em 0; }
+  </style>
+</head>
+<body>
+  <p class="surtitre">Série datajournalistique en dix actes</p>
+  <h1>L'illusion des petits nombres</h1>
+  <p class="lede">Comment la presse française interprète mal les classements de communes, lycées, hôpitaux et médecins quand les échantillons sont petits — et comment corriger.</p>
+
+  <p>Quand on calcule un taux à partir d'un petit échantillon, le hasard parle plus fort que la sociologie. Une commune de 200 habitants peut se retrouver en tête d'un classement de la dangerosité avec quatre cambriolages dans l'année. Une commune de 200 000 habitants n'y arrivera jamais. Cette mécanique, identifiée dès 1971 par Daniel Kahneman et Amos Tversky, structure une bonne partie des palmarès qui font la une des journaux. Cette série en démonte dix.</p>
+
+  <h2>Les épisodes</h2>
+  <table>
+    <thead>
+      <tr><th class="num">N°</th><th>Sujet</th><th>Statut</th></tr>
+    </thead>
+    <tbody>
+      <tr><td class="num">01</td><td><a href="episode-01/">Cambriolages</a></td><td class="statut-publie">Publié</td></tr>
+      <tr><td class="num">02</td><td>Lycées</td><td class="statut-venir">À venir</td></tr>
+      <tr><td class="num">03</td><td>Élections, bureau par bureau</td><td class="statut-venir">À venir</td></tr>
+      <tr><td class="num">04</td><td>Tribunaux laxistes</td><td class="statut-venir">À venir</td></tr>
+      <tr><td class="num">05</td><td>Maternités et mortalité néonatale</td><td class="statut-venir">À venir</td></tr>
+      <tr><td class="num">06</td><td>EHPAD</td><td class="statut-venir">À venir</td></tr>
+      <tr><td class="num">07</td><td>Notations Google des médecins</td><td class="statut-venir">À venir</td></tr>
+      <tr><td class="num">08</td><td>Saisies de drogue par poste de douane</td><td class="statut-venir">À venir</td></tr>
+      <tr><td class="num">09</td><td>Centres de PMA</td><td class="statut-venir">À venir</td></tr>
+      <tr><td class="num">10</td><td>Comment lire un chiffre</td><td class="statut-venir">À venir</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Méthode et reproductibilité</h2>
+  <p>Le code complet (R, Quarto, scripts ggplot2), les données source et la méthode sont publics : <a href="https://github.com/sachazaouati/illusion-petits-nombres">github.com/sachazaouati/illusion-petits-nombres</a>. Code sous licence MIT, articles et graphiques sous licence CC BY 4.0.</p>
+
+  <p>Auteur : <strong>Sacha Zaouati</strong>, datajournaliste indépendant. Pige presse, études B2B, conférences. <a href="mailto:sacha.zaouati@gmail.com">sacha.zaouati@gmail.com</a>.</p>
+
+  <footer>
+    <p>Données : SSMSI, INSEE, DREES, ATIH, ministère de la Justice, Agence de la biomédecine.</p>
+    <p>Outils : R, DuckDB, Quarto, ggplot2, plotly. Hébergé par GitHub Pages.</p>
+  </footer>
+</body>
+</html>

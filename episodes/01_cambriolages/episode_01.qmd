@@ -102,8 +102,9 @@ cat("Cambriolages totaux :", format(sum(cambri$nb_cambriolages), big.mark = " ")
 #| fig-width: 10
 #| fig-height: 6
 #| fig-cap: "Taux de cambriolages 2024 selon la taille de la commune. Chaque point = une commune."
+#| fig-alt: "Nuage de points (échelle logarithmique en abscisse) montrant le taux de cambriolages pour 1 000 habitants en fonction de la population communale. À gauche (communes de moins de 1 000 habitants), les points sont très dispersés verticalement, avec des taux allant de 0 à plus de 50 ‰. À droite (communes de plus de 10 000 habitants), la dispersion se resserre fortement et les taux convergent vers une bande étroite autour de 5–10 ‰."
 
-ggplot(cambri, aes(x = population, y = taux_pour_mille)) +
+p_static <- ggplot(cambri, aes(x = population, y = taux_pour_mille)) +
   geom_point(alpha = 0.15, size = 0.5, color = "#4A9EBD") +
   scale_x_log10(
     breaks = c(100, 300, 1000, 10000, 100000),
@@ -120,6 +121,8 @@ ggplot(cambri, aes(x = population, y = taux_pour_mille)) +
     caption = "Source : SSMSI / data.gouv.fr • Analyse : Sacha Zaouati"
   ) +
   theme_minimal(base_size = 12)
+
+p_static
 ```
 
 ## Le graphique interactif
@@ -270,6 +273,7 @@ Il n'existe pas de seuil mathématique « vrai ». Les autorités sanitaires uti
 #| fig-width: 9
 #| fig-height: 4.5
 #| fig-cap: "Simulation : 1 000 communes IDENTIQUES de 200 logements, même probabilité réelle 5 ‰. La dispersion observée vient uniquement du tirage aléatoire."
+#| fig-alt: "Graphique en essaim (strip plot) montrant la distribution des taux observés pour 1 000 communes simulées, toutes identiques avec un taux réel de 5 ‰. Les points s'étalent de 0 à environ 25 ‰ malgré l'absence de toute différence réelle. Une ligne rouge verticale marque le taux vrai commun à toutes les communes. Un rectangle orange en arrière-plan met en évidence la zone des 'communes les plus dangereuses', qui ne contient que du bruit statistique."
 
 set.seed(42)
 n_communes <- 1000
@@ -316,6 +320,8 @@ Paramètres : 1 000 communes simulées, 200 logements chacune, probabilité rée
 
 Toutes ces communes sont *identiques* en réalité. La dispersion observée vient uniquement du tirage aléatoire.
 
+Cette hypothèse est volontairement extrême. Dans la réalité, il existe bien des différences entre communes : densité urbaine, composition socio-économique, présence de zones commerciales ou périphériques. Mais voilà ce que montre la simulation : pour les petites communes, l'erreur de mesure aléatoire est si massive qu'elle noie ces vraies différences. Le signal sociologique, même s'il est réel, ne peut pas être distingué du bruit statistique quand la population est faible. C'est pourquoi un palmarès brut qui compare Vieille-Toulouse à Paris ne mesure pas une différence de criminalité — il mesure une différence de taille d'échantillon.
+
 Si maintenant on refait la même simulation avec 50 000 logements par commune (plutôt que 200), tous les taux observés tombent entre 4,2 et 6,0 ‰. **L'écart-type théorique passe de 5,0 ‰ à 0,32 ‰** entre les deux configurations.
 
 L'écart-type du taux observé décroît en $1/\sqrt{n}$ :
@@ -326,13 +332,190 @@ Pour Boissettes (n ≈ 200 logements), σ ≈ 5 ‰. Pour Paris (n ≈ 1 400 000
 
 ## Régression vers la moyenne
 
-Conséquence directe du fait n° 3 : les communes qui apparaissent dans le top brut une année donnée ont une faible probabilité d'y figurer l'année suivante. Sur les 10 communes du top brut 2024, on peut prédire que la majorité aura disparu du top 100 en 2025. Cette prédiction sera vérifiable et vérifiée en mai 2027, à la publication de la base SSMSI 2025.
+Tout résultat extrême — qu'il soit exceptionnellement élevé ou exceptionnellement bas — est, le plus souvent, la conséquence d'une fluctuation aléatoire exceptionnelle à un instant T. Ce type de fluctuation est, par définition, peu probable de se reproduire à l'identique : elle tend à être suivie d'une mesure plus proche de la moyenne. C'est ce que les statisticiens nomment la *régression vers la moyenne* (Galton, 1886), et que Kahneman et Tversky (1974) ont montré être systématiquement sous-estimée dans le raisonnement ordinaire. Elle ne signifie pas que la commune s'est améliorée ou dégradée sur le fond : elle signifie seulement que le bruit aléatoire a été moins extrême l'année suivante.
+
+Conséquence directe pour notre palmarès : les communes qui apparaissent dans le top brut une année donnée ont une faible probabilité d'y figurer l'année suivante. Sur les 10 communes du top brut 2024, on peut prédire que la majorité aura disparu du top 100 en 2025. Cette prédiction sera vérifiable et vérifiée en mai 2027, à la publication de la base SSMSI 2025.
+
+## L'entonnoir de Spiegelhalter : une alternative au seuil
+
+Le seuil de 10 000 habitants est un couperet : une commune en dessous est exclue, une commune au-dessus est incluse. L'entonnoir de Spiegelhalter (2005) propose une alternative continue : afficher toutes les communes et tracer autour du taux moyen national les marges d'erreur attendues pour chaque taille de population. La méthode repose sur la même mathématique que la simulation ci-dessus — l'écart-type décroît en 1/√n — mais l'utilise de manière continue plutôt que comme un couperet.
+
+L'entonnoir s'évase à gauche (petites communes, marge énorme) et se resserre à droite (grandes villes, marge minuscule). Les communes situées *à l'intérieur* de l'entonnoir reproduisent simplement la variabilité naturelle d'un tirage de Poisson : leur taux n'est pas interprétable individuellement. Seules les communes situées *à l'extérieur* des bandes à 99,8 % présentent un écart statistiquement inexplicable par le seul effet des effectifs. Ce sont les seules qui mériteraient une investigation sociologique ou sécuritaire.
+
+```{r funnel-plot}
+#| fig-width: 10
+#| fig-height: 6
+#| fig-cap: "Entonnoir de Spiegelhalter (2005). Les communes en rouge sortent des bandes à 99,8 % — leur taux ne s'explique pas par la seule loterie statistique. Les communes grises ne sont que du bruit, fût-il spectaculaire."
+#| fig-alt: "Graphique en entonnoir (funnel plot) sur fond logarithmique. Deux rubans bleus en forme d'entonnoir, larges à gauche et resserrés à droite, représentent les intervalles de confiance à 95 % et 99,8 % autour du taux national moyen. La grande majorité des communes (en gris clair) se trouve à l'intérieur de l'entonnoir. Un faible nombre de communes (en rouge vif) dépassent la bande à 99,8 % : ce sont les seules dont le taux présente un signal statistiquement robuste."
+
+# Taux moyen national pondéré par la population
+rate_global <- sum(cambri$nb_cambriolages, na.rm = TRUE) /
+               sum(cambri$population,      na.rm = TRUE) * 1000
+
+# Grille de tailles de commune pour les courbes d'entonnoir
+n_seq <- exp(seq(log(min(cambri$population[cambri$population > 0])),
+                 log(max(cambri$population)), length.out = 600))
+
+# Intervalles de Poisson (méthode exacte, quantiles)
+# Pour une commune de n habitants : cambriolages attendus = n * rate_global / 1000
+funnel_df <- data.frame(
+  n       = n_seq,
+  ci95_lo = qpois(0.025, n_seq * rate_global / 1000) / n_seq * 1000,
+  ci95_hi = qpois(0.975, n_seq * rate_global / 1000) / n_seq * 1000,
+  ci998_lo = qpois(0.001, n_seq * rate_global / 1000) / n_seq * 1000,
+  ci998_hi = qpois(0.999, n_seq * rate_global / 1000) / n_seq * 1000
+)
+
+# Classement de chaque commune selon sa position dans l'entonnoir
+cambri_funnel <- cambri |>
+  filter(!is.na(taux_pour_mille), population > 0) |>
+  mutate(
+    lambda_attendu = population * rate_global / 1000,
+    borne_sup_998  = qpois(0.999, lambda_attendu) / population * 1000,
+    borne_inf_998  = qpois(0.001, lambda_attendu) / population * 1000,
+    statut = if_else(
+      taux_pour_mille > borne_sup_998 | taux_pour_mille < borne_inf_998,
+      "Hors entonnoir (signal possible)", "Dans l'entonnoir (bruit)"
+    )
+  )
+
+n_hors <- sum(cambri_funnel$statut == "Hors entonnoir (signal possible)")
+
+ggplot() +
+  geom_ribbon(
+    data = funnel_df,
+    aes(x = n, ymin = ci998_lo, ymax = ci998_hi),
+    fill = "#E8F4F8", alpha = 0.9
+  ) +
+  geom_ribbon(
+    data = funnel_df,
+    aes(x = n, ymin = ci95_lo, ymax = ci95_hi),
+    fill = "#C5E3F0", alpha = 0.7
+  ) +
+  geom_hline(yintercept = rate_global, color = "#1F4E79",
+             linetype = "dashed", linewidth = 0.6) +
+  geom_point(
+    data = cambri_funnel |> filter(statut == "Dans l'entonnoir (bruit)"),
+    aes(x = population, y = taux_pour_mille),
+    color = "#AAAAAA", alpha = 0.2, size = 0.4
+  ) +
+  geom_point(
+    data = cambri_funnel |> filter(statut == "Hors entonnoir (signal possible)"),
+    aes(x = population, y = taux_pour_mille),
+    color = "#FF6B6B", alpha = 0.8, size = 1.2
+  ) +
+  scale_x_log10(
+    breaks = c(100, 300, 1000, 10000, 100000, 1e6),
+    labels = c("100", "300", "1 000", "10 000", "100 000", "1 M")
+  ) +
+  scale_y_continuous(
+    limits = c(0, quantile(cambri_funnel$taux_pour_mille, 0.995, na.rm = TRUE))
+  ) +
+  annotate("text", x = max(cambri$population) * 0.7, y = rate_global + 0.3,
+           label = sprintf("Taux national moyen : %.1f ‰", rate_global),
+           color = "#1F4E79", size = 3, hjust = 1) +
+  labs(
+    title = "L'entonnoir de Spiegelhalter : quelles communes sortent vraiment du lot ?",
+    subtitle = sprintf(
+      "%d communes sur %d sortent des bandes à 99,8 %% — les autres ne sont que du bruit",
+      n_hors, nrow(cambri_funnel)
+    ),
+    x = "Population (échelle logarithmique)",
+    y = "Cambriolages pour 1 000 habitants",
+    caption = "Méthode : Spiegelhalter (2005). Intervalles de Poisson exacts à 95 % (bleu foncé) et 99,8 % (bleu clair).\nSource : SSMSI / data.gouv.fr — Analyse : Sacha Zaouati"
+  ) +
+  theme_minimal(base_size = 12)
+```
+
+```{r funnel-palmares}
+# Palmarès des communes hors entonnoir (signal statistiquement robuste)
+top_signal <- cambri_funnel |>
+  filter(statut == "Hors entonnoir (signal possible)",
+         taux_pour_mille > rate_global) |>
+  arrange(desc(taux_pour_mille)) |>
+  head(10) |>
+  select(nom_commune, departement, population, nb_cambriolages, taux_pour_mille)
+
+knitr::kable(top_signal,
+             digits = 1,
+             caption = "Top 10 des communes au-dessus de l'entonnoir à 99,8 % : taux statistiquement significatifs.",
+             col.names = c("Commune", "Dép.", "Population", "Cambriolages", "‰ habitants"))
+```
+
+## Le palmarès bayésien : une troisième correction
+
+Le lissage bayésien empirique (Robbins, 1956 ; Efron & Morris, 1975) permet d'aller plus loin que le seuil ou l'entonnoir. Plutôt qu'exclure les communes trop petites, il calcule pour chaque commune un taux *ajusté* qui combine le taux observé et le taux moyen national, pondérés par la fiabilité de la mesure locale. Plus une commune est petite, plus son taux observé est peu fiable, et plus le résultat est tiré vers la moyenne nationale.
+
+Le modèle statistique sous-jacent est un conjugué Gamma-Poisson : on suppose que le taux *vrai* de chaque commune suit une loi Gamma(α, β), et que le nombre de cambriolages observé est tiré d'une loi de Poisson. Les paramètres α et β sont estimés par la méthode des moments sur l'ensemble des communes (c'est l'étape « empirique » du bayésien empirique). La moyenne *a posteriori* pour chaque commune est alors :
+
+$$\hat{\mu}_i = \frac{\alpha + \text{cambriolages}_i}{\beta + n_i / 1000}$$
+
+Ce taux bayésien interpole entre le taux observé (fiable quand n est grand) et le taux national moyen (prédominant quand n est petit). Pour Boissettes (437 habitants, 7 cambriolages) le taux observé de 53 ‰ est tiré massivement vers la moyenne ; pour Paris (2,1 millions d'habitants), le taux observé est conservé presque intact.
+
+```{r palmares-bayes}
+# Estimation des paramètres du prior Gamma-Poisson par la méthode des moments
+# E[μ] = α/β = taux moyen national
+# Var[μ] = α/β² = variance inter-communes (après soustraction de la variance de Poisson)
+
+rate_global_eb <- sum(cambri$nb_cambriolages, na.rm = TRUE) /
+                  sum(cambri$population,      na.rm = TRUE) * 1000
+
+# Variance totale observée des taux
+var_totale <- var(cambri$taux_pour_mille, na.rm = TRUE)
+
+# Variance de Poisson attendue si toutes les communes avaient le taux moyen
+# σ²_Poisson ≈ rate / (n_moyen / 1000) où n_moyen est la taille moyenne
+n_moyen_milliers <- mean(cambri$population / 1000, na.rm = TRUE)
+var_poisson       <- rate_global_eb / n_moyen_milliers
+
+# Variance inter-communes (variance vraie entre communes)
+var_inter <- max(var_totale - var_poisson, 0.01)
+
+# Paramètres du prior
+beta_prior  <- rate_global_eb / var_inter
+alpha_prior <- rate_global_eb * beta_prior
+
+# Taux bayésien a posteriori pour chaque commune
+cambri_eb <- cambri |>
+  filter(!is.na(taux_pour_mille), population > 0) |>
+  mutate(
+    n_milliers = population / 1000,
+    taux_eb    = (alpha_prior + nb_cambriolages) / (beta_prior + n_milliers),
+    retrait_vers_moy = taux_pour_mille - taux_eb   # ampleur du lissage
+  )
+
+# Palmarès bayésien : top 10 par taux a posteriori
+top10_bayes <- cambri_eb |>
+  arrange(desc(taux_eb)) |>
+  head(10) |>
+  select(nom_commune, departement, population, taux_pour_mille, taux_eb)
+
+knitr::kable(top10_bayes,
+             digits = 1,
+             caption = sprintf(
+               "Top 10 bayésien (Gamma-Poisson, α = %.2f, β = %.2f). Le taux ajusté pondère l'observation locale par sa fiabilité.",
+               alpha_prior, beta_prior
+             ),
+             col.names = c("Commune", "Dép.", "Population", "Taux observé (‰)", "Taux bayésien (‰)"))
+```
+
+---
+
+## Encart — La défense des palmarès bruts
+
+**Ce que disent les économistes de la redevabilité publique**
+
+La critique statistique des palmarès a un angle mort que la littérature en économie publique signale depuis les années 1990 : un classement imparfait peut produire de meilleurs effets sur les comportements qu'une absence de classement. Le modèle de *yardstick competition* formalisé par Besley et Case (1995) montre que les citoyens utilisent naturellement les indicateurs des juridictions voisines pour évaluer leurs propres élus — même si ces indicateurs sont bruités. C'est précisément parce qu'ils sont publics et comparables qu'ils créent une pression réputationnelle sur les responsables locaux.
+
+L'argument n'est pas théorique. Une expérience naturelle menée au Pays de Galles après l'abolition des palmarès scolaires a mesuré une baisse significative de l'efficacité des établissements dans les années suivant la suppression de la publication (Burgess et al., 2005). Ce que les statisticiens appellent du bruit, les économistes l'appellent parfois de l'*accountability* : la variance des petits effectifs, aussi gênante soit-elle pour l'interprétation, force les maires de petites communes à répondre de leurs chiffres devant leurs administrés d'une manière qu'aucun indicateur lissé ne parviendrait à reproduire.
+
+La correction bayésienne ou le filtrage par seuil réduisent l'illusion, mais réduisent aussi la pression. La question de savoir quel prix démocratique on est prêt à payer pour gagner en rigueur statistique reste entièrement ouverte.
+
+---
 
 ## Pour aller plus loin
 
 Une [page scrollytelling autonome](scrollytelling/index.html) décompose la même démonstration en dix étapes visuelles, pensées pour la lecture séquentielle (les SVG sont tous régénérables depuis les scripts R dans `scrollytelling/R/`).
-
-Les corrections statistiques pointées par la relecture (formulation explicite de l'hypothèse de communes identiques, mécanisme de la régression vers la moyenne) ainsi que la version *funnel plot* à la Spiegelhalter (2005) et le palmarès *Empirical Bayes* (Robbins 1956 ; Efron 2010) seront ajoutés dans une prochaine itération — voir `Relecture 1.md` (privé) et la roadmap dans `CLAUDE.md`.
 
 ## Note méthodologique
 
@@ -342,7 +525,22 @@ Les corrections statistiques pointées par la relecture (formulation explicite d
 
 **Simulation.** Tirages indépendants de Poisson(λ = n × p), avec n = nombre de logements, p = 0,005 (taux moyen national). Graine fixée à 42.
 
+**Entonnoir de Spiegelhalter.** Intervalles de Poisson exacts (qpois) à 95 % et 99,8 %, centrés sur le taux moyen national pondéré. Méthode : Spiegelhalter, D. (2005), « Funnel plots for comparing institutional performance », *Statistics in Medicine*, 24(8), 1185–1202.
+
+**Palmarès bayésien.** Modèle conjugué Gamma-Poisson. Paramètres du prior estimés par méthode des moments (variance totale des taux observés, après soustraction de la variance de Poisson attendue). Moyenne *a posteriori* : (α + cambriolages_i) / (β + population_i / 1000). Références : Robbins, H. (1956), « An empirical Bayes approach to statistics » ; Efron, B. & Morris, C. (1975), « Data analysis using Stein's estimator and its generalizations », *Journal of the American Statistical Association*, 70(350), 311–319.
+
+**Encart redevabilité.** Besley, T. & Case, A. (1995), « Incumbent behavior: vote seeking, tax setting, and yardstick competition », *American Economic Review*, 85(1), 25–45. Burgess, S., Propper, C., Slater, H. & Wilson, D. (2005), « Who wins and who loses from school accountability? The distribution of educational gains in English primary schools », *CMPO Working Paper 05/128*.
+
 **Reproductibilité.** Code (R + Quarto + scripts ggplot2) et données extraites : <https://github.com/sachazaouati/illusion-petits-nombres>. Le `.qmd` est la source canonique ; il génère HTML et PDF via `quarto render` (le rendu PDF requiert TinyTeX, installable depuis Quarto avec `quarto install tinytex`). Code MIT, articles et graphiques CC BY 4.0.
+
+```{r accessibilite, include=TRUE}
+#| fig-width: 12
+#| fig-height: 8
+#| fig-cap: "Simulation des quatre déficiences de vision des couleurs les plus fréquentes appliquées au graphique principal. Produit par le package colorblindr (Wilke & Zhu)."
+#| fig-alt: "Grille de quatre variantes du graphique principal simulant les perceptions deutéranopie, protanopie, tritanopie et achromatopsie. Dans toutes les variantes, la structure du nuage reste lisible car la palette repose principalement sur la luminosité et la position, et non sur la seule teinte."
+#| eval: !expr requireNamespace("colorblindr", quietly = TRUE)
+colorblindr::cvd_grid(p_static)
+```
 
 ```{r exports, include=FALSE}
 # Exports CSV pour Datawrapper et publication GitHub

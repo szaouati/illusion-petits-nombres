@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>v2 interactive — Vieille-Toulouse, capitale du cambriolage ?</title>
+<meta name="description" content="Version expérimentale interactive — D3 + scrollama. Les graphiques s'animent au scroll au lieu d'être des fondus enchaînés de SVG statiques.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="https://unpkg.com/scrollama@3.2.0/build/scrollama.min.js"></script>
+
+<style>
+:root {
+  --col-text: #1A1A1A;
+  --col-text-soft: #555;
+  --col-muted: #888;
+  --col-bg: #FAFAF7;
+  --col-bg-card: #FFFFFF;
+  --col-accent: #E74C3C;
+  --col-accent-2: #1F4E79;
+  --col-accent-3: #27AE60;
+  --col-points: #B8C5D0;
+  --col-band: #F4E4D6;
+  --col-rule: #E8E5DD;
+  --serif: 'Source Serif 4', Georgia, serif;
+  --sans: 'Inter', -apple-system, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--serif);
+  font-size: 19px;
+  line-height: 1.65;
+  color: var(--col-text);
+  background: var(--col-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+.banner {
+  background: #FFF6E0;
+  border-bottom: 1px solid #E8DEB8;
+  padding: 12px 24px;
+  font-family: var(--sans);
+  font-size: 13px;
+  text-align: center;
+  color: #8A6B1F;
+}
+
+.hero {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 64px 24px 32px;
+}
+
+.kicker {
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--col-accent);
+  margin-bottom: 20px;
+}
+
+h1 {
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: clamp(32px, 5vw, 44px);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+}
+
+.intro {
+  max-width: 720px;
+  margin: 0 auto 40px;
+  padding: 0 24px;
+}
+
+.intro p { font-size: 19px; margin-bottom: 1em; color: var(--col-text-soft); }
+
+/* === SCROLLY === */
+.scrolly {
+  position: relative;
+  max-width: 1280px;
+  margin: 32px auto 80px;
+  padding: 0 24px;
+  display: grid;
+  grid-template-columns: 6fr 4fr;
+  gap: 50px;
+  align-items: start;
+}
+
+.scrolly-graphic {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 5vh;
+  height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scrolly-graphic-inner {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.scrolly-text-spacer { height: 70vh; }
+
+.scrolly-step {
+  min-height: 95vh;
+  display: flex;
+  align-items: center;
+  padding: 30px 0;
+}
+
+.scrolly-step-card {
+  background: var(--col-bg-card);
+  border: 1px solid var(--col-rule);
+  border-radius: 4px;
+  padding: 24px 28px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  font-size: 17px;
+  line-height: 1.55;
+  width: 100%;
+}
+
+.step-num {
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  color: var(--col-accent);
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 10px;
+}
+
+@media (max-width: 900px) {
+  .scrolly { display: block; padding: 0 16px; }
+  .scrolly-graphic { top: 8vh; height: 60vh; }
+  .scrolly-text-spacer { height: 30vh; }
+  .scrolly-step { min-height: 80vh; padding: 20px 0; }
+}
+
+/* === SVG D3 === */
+#scatter-svg {
+  width: 100%;
+  height: 100%;
+  font-family: var(--sans);
+}
+
+.axis path, .axis line { stroke: #999; stroke-width: 0.5; }
+.axis text { fill: #2C3E50; font-size: 11px; }
+.grid line { stroke: #E5E5E5; stroke-width: 0.5; }
+.grid path { display: none; }
+
+.point { transition: fill 0.6s ease, r 0.6s ease, opacity 0.6s ease; cursor: pointer; }
+.point:hover { stroke: #1A1A1A; stroke-width: 1.2; }
+
+.tooltip {
+  position: absolute;
+  background: rgba(26,26,26,0.95);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-family: var(--sans);
+  font-size: 12px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 100;
+  white-space: nowrap;
+}
+
+.tooltip.visible { opacity: 1; }
+.tooltip strong { display: block; margin-bottom: 2px; }
+
+.label-overlay {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 11px;
+  pointer-events: none;
+}
+
+.threshold-line {
+  stroke: #34495E;
+  stroke-width: 1.5;
+  stroke-dasharray: 6, 4;
+  opacity: 0;
+  transition: opacity 0.6s;
+}
+
+.threshold-band {
+  fill: var(--col-band);
+  opacity: 0;
+  transition: opacity 0.6s;
+}
+
+.method, .footer {
+  max-width: 720px;
+  margin: 60px auto;
+  padding: 24px;
+  font-family: var(--sans);
+  font-size: 14px;
+  color: var(--col-text-soft);
+  border-top: 1px solid var(--col-rule);
+}
+.method h3 {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--col-text);
+  margin-bottom: 12px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="banner">
+  ⚠️ Version expérimentale — graphiques rendus en D3.js, animations au scroll, tooltip au survol.
+  La v1 (SVG statiques en fondu enchaîné) reste dans le dossier <code>scrollytelling/</code>.
+</div>
+
+<header class="hero">
+  <div class="kicker">L'illusion des petits nombres — épisode 1 — v2 interactive</div>
+  <h1>Le scatter qui s'anime au lieu de s'enchaîner par fondus.</h1>
+</header>
+
+<section class="intro">
+  <p>Cette version ne charge pas de SVG pré-générés. À la place, elle lit le CSV des 10 951 communes côté client, et utilise D3 pour faire bouger les points : changement de couleur, déplacement, apparition de la bande de seuil, label qui s'allume au survol.</p>
+  <p>Faire défiler pour voir les transitions.</p>
+</section>
+
+<!-- SCROLLY interactif -->
+<section class="scrolly" id="scrolly-scatter">
+  <div class="scrolly-graphic">
+    <div class="scrolly-graphic-inner">
+      <svg id="scatter-svg" preserveAspectRatio="xMidYMid meet"></svg>
+    </div>
+  </div>
+
+  <div class="scrolly-text">
+    <div class="scrolly-text-spacer"></div>
+
+    <div class="scrolly-step" data-state="base">
+      <div class="scrolly-step-card">
+        <span class="step-num">État 1 — Le nuage</span>
+        <p>10 951 communes. Chaque point représente une commune. Abscisse : population. Ordonnée : taux de cambriolages 2024 pour 1 000 logements.</p>
+        <p><em>Survolez un point : son nom et ses chiffres apparaissent.</em></p>
+      </div>
+    </div>
+
+    <div class="scrolly-step" data-state="vieille-toulouse">
+      <div class="scrolly-step-card">
+        <span class="step-num">État 2 — Vieille-Toulouse</span>
+        <p>Le point le plus haut s'allume.</p>
+      </div>
+    </div>
+
+    <div class="scrolly-step" data-state="top10-brut">
+      <div class="scrolly-step-card">
+        <span class="step-num">État 3 — Top 10 brut</span>
+        <p>Les 10 points les plus hauts deviennent rouges. 9 sur 10 sont à gauche.</p>
+      </div>
+    </div>
+
+    <div class="scrolly-step" data-state="metropoles">
+      <div class="scrolly-step-card">
+        <span class="step-num">État 4 — Les grandes villes</span>
+        <p>Paris, Marseille, Lyon, Lille, Bordeaux, Toulouse s'allument en bleu. La bande de droite (≥ 10 000 hab.) apparaît.</p>
+      </div>
+    </div>
+
+    <div class="scrolly-step" data-state="seuil">
+      <div class="scrolly-step-card">
+        <span class="step-num">État 5 — Le seuil</span>
+        <p>Les communes &lt; 10 000 habitants s'effacent. Reste 1 116 communes.</p>
+      </div>
+    </div>
+
+    <div class="scrolly-step" data-state="top10-corrige">
+      <div class="scrolly-step-card">
+        <span class="step-num">État 6 — Top 10 corrigé</span>
+        <p>Les 10 communes les plus cambriolées dans la zone retenue s'allument en vert.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="tooltip" id="tooltip"></div>
+
+<section class="method">
+  <h3>Architecture de cette version</h3>
+  <p>Cette page charge <code>../cambriolages_2024.csv</code> côté client (D3.csv), construit un seul SVG, et applique 6 états de styling. Les transitions D3 (durée 600 ms) animent les changements de couleur et d'opacité.</p>
+  <p>Avantages par rapport à la v1 (SVG statiques) : tooltip au survol, affichage instantané du nom de n'importe quelle commune, taille de fichier transmise plus petite (le CSV pèse 425 KB contre ~1 MB de SVG cumulés), et la possibilité d'ajouter du zoom, du panning, des filtres dynamiques.</p>
+  <p>Inconvénients : moins accessible si JS désactivé, dépendance à D3 (~80 KB), pas indexable par un moteur de recherche pour le contenu visuel.</p>
+  <p>Voir <code>README.md</code> dans ce dossier pour les pistes d'extension : animation des transitions de position, simulation interactive avec slider sur n, lien direct entre point et carte OpenStreetMap.</p>
+</section>
+
+<footer class="footer">
+  <p>Sacha Zaouati — datajournaliste indépendant.</p>
+</footer>
+
+<script>
+// ========================================================================
+// Setup D3
+// ========================================================================
+const svg = d3.select("#scatter-svg");
+const tooltip = d3.select("#tooltip");
+
+const margin = { top: 20, right: 30, bottom: 50, left: 60 };
+
+let width, height, x, y, gPoints, gAxes, thresholdLine, thresholdBand;
+
+const TOP_BRUT_NAMES = [
+  "Vieille-Toulouse","Saugon","Saint-Germain-du-Corbéis","Dracy-le-Fort",
+  "Saint-André-de-Bâgé","Clonas-sur-Varèze","Boissettes","Drémil-Lafage",
+  "Ayguesvives","Polliat"
+];
+const TOP_CORRIGE_NAMES = [
+  "Vétraz-Monthoux","Saint-Avertin","Cestas","Le Taillan-Médoc","Kourou",
+  "Bois-Guillaume","Saint-Laurent-du-Maroni","Cesson-Sévigné","Marly","Gaillard"
+];
+const METROPOLE_NAMES = ["Paris","Marseille","Lyon","Lille","Bordeaux","Toulouse","Nantes","Strasbourg"];
+
+// ========================================================================
+// Chargement des données et premier rendu
+// ========================================================================
+d3.csv("../cambriolages_2024.csv", d => ({
+  code_commune: d.code_commune,
+  nom_commune: d.nom_commune,
+  departement: d.departement,
+  population: +d.population,
+  nb_cambriolages: +d.nb_cambriolages,
+  taux_pour_mille: +d.taux_pour_mille
+})).then(data => {
+  setupChart();
+  renderInitial(data);
+  setupScrollama(data);
+  window.addEventListener("resize", () => {
+    setupChart();
+    renderInitial(data);
+    applyState(currentState, data);
+  });
+});
+
+let currentState = "base";
+
+function setupChart() {
+  const node = svg.node().getBoundingClientRect();
+  width = node.width;
+  height = node.height;
+
+  svg.selectAll("*").remove();
+
+  x = d3.scaleLog()
+    .domain([50, 3_000_000])
+    .range([margin.left, width - margin.right]);
+
+  y = d3.scaleLinear()
+    .domain([-2, 75])
+    .range([height - margin.bottom, margin.top]);
+
+  // Axes
+  gAxes = svg.append("g");
+
+  gAxes.append("g")
+    .attr("class", "axis")
+    .attr("transform", `translate(0,${height - margin.bottom})`)
+    .call(d3.axisBottom(x)
+      .tickValues([100, 300, 1000, 10000, 100000, 1000000])
+      .tickFormat(d => {
+        if (d === 1000000) return "1 M";
+        return d3.format(",")(d).replace(/,/g, " ");
+      }));
+
+  gAxes.append("g")
+    .attr("class", "axis")
+    .attr("transform", `translate(${margin.left},0)`)
+    .call(d3.axisLeft(y).tickValues([0, 10, 20, 30, 40, 50, 60, 70]));
+
+  // Gridlines
+  gAxes.append("g")
+    .attr("class", "grid")
+    .attr("transform", `translate(${margin.left},0)`)
+    .call(d3.axisLeft(y)
+      .tickValues([0, 10, 20, 30, 40, 50, 60, 70])
+      .tickSize(-(width - margin.left - margin.right))
+      .tickFormat(""));
+
+  // Axis labels
+  svg.append("text")
+    .attr("x", width / 2)
+    .attr("y", height - 8)
+    .attr("text-anchor", "middle")
+    .attr("font-family", "Inter, sans-serif")
+    .attr("font-size", "12px")
+    .attr("fill", "#2C3E50")
+    .text("Population de la commune (échelle logarithmique)");
+
+  svg.append("text")
+    .attr("transform", `rotate(-90)`)
+    .attr("x", -height / 2)
+    .attr("y", 16)
+    .attr("text-anchor", "middle")
+    .attr("font-family", "Inter, sans-serif")
+    .attr("font-size", "12px")
+    .attr("fill", "#2C3E50")
+    .text("Cambriolages pour 1 000 logements");
+
+  // Threshold band (initially hidden)
+  thresholdBand = svg.insert("rect", ":first-child")
+    .attr("class", "threshold-band")
+    .attr("x", x(10000))
+    .attr("y", margin.top)
+    .attr("width", width - margin.right - x(10000))
+    .attr("height", height - margin.bottom - margin.top);
+
+  // Threshold line (initially hidden)
+  thresholdLine = svg.append("line")
+    .attr("class", "threshold-line")
+    .attr("x1", x(10000)).attr("x2", x(10000))
+    .attr("y1", margin.top).attr("y2", height - margin.bottom);
+
+  // Points layer (last, on top)
+  gPoints = svg.append("g").attr("class", "points");
+}
+
+function renderInitial(data) {
+  gPoints.selectAll("circle.point")
+    .data(data, d => d.code_commune)
+    .join("circle")
+      .attr("class", "point")
+      .attr("cx", d => x(Math.max(d.population, 50)))
+      .attr("cy", d => y(d.taux_pour_mille))
+      .attr("r", 2)
+      .attr("fill", "var(--col-points)")
+      .attr("opacity", 0.5)
+      .on("mouseover", function(event, d) {
+        const [mx, my] = d3.pointer(event, document.body);
+        tooltip
+          .style("left", (mx + 12) + "px")
+          .style("top",  (my + 12) + "px")
+          .html(`<strong>${d.nom_commune}</strong>(${d.departement})<br>${d.population.toLocaleString('fr')} hab. • ${d.nb_cambriolages} cambriolages<br>${d.taux_pour_mille.toFixed(1)} ‰`)
+          .classed("visible", true);
+      })
+      .on("mousemove", function(event) {
+        const [mx, my] = d3.pointer(event, document.body);
+        tooltip.style("left", (mx + 12) + "px").style("top", (my + 12) + "px");
+      })
+      .on("mouseout", () => tooltip.classed("visible", false));
+}
+
+// ========================================================================
+// États visuels
+// ========================================================================
+function applyState(state, data) {
+  currentState = state;
+  const points = gPoints.selectAll("circle.point");
+
+  // reset banner
+  thresholdLine.attr("opacity", 0);
+  thresholdBand.attr("opacity", 0);
+  svg.selectAll(".label-overlay").remove();
+
+  if (state === "base") {
+    points.transition().duration(600)
+      .attr("fill", "#B8C5D0")
+      .attr("opacity", 0.5)
+      .attr("r", 2);
+  }
+  else if (state === "vieille-toulouse") {
+    points.transition().duration(600)
+      .attr("fill", d => d.nom_commune === "Vieille-Toulouse" ? "#E74C3C" : "#B8C5D0")
+      .attr("opacity", d => d.nom_commune === "Vieille-Toulouse" ? 1 : 0.4)
+      .attr("r", d => d.nom_commune === "Vieille-Toulouse" ? 7 : 2);
+  }
+  else if (state === "top10-brut") {
+    points.transition().duration(600)
+      .attr("fill", d => TOP_BRUT_NAMES.includes(d.nom_commune) ? "#E74C3C" : "#B8C5D0")
+      .attr("opacity", d => TOP_BRUT_NAMES.includes(d.nom_commune) ? 1 : 0.3)
+      .attr("r", d => TOP_BRUT_NAMES.includes(d.nom_commune) ? 5 : 2);
+  }
+  else if (state === "metropoles") {
+    thresholdBand.transition().duration(600).attr("opacity", 0.18);
+    points.transition().duration(600)
+      .attr("fill", d => {
+        if (METROPOLE_NAMES.includes(d.nom_commune)) return "#1F4E79";
+        if (TOP_BRUT_NAMES.includes(d.nom_commune)) return "#E74C3C";
+        return "#B8C5D0";
+      })
+      .attr("opacity", d => {
+        if (METROPOLE_NAMES.includes(d.nom_commune)) return 1;
+        if (TOP_BRUT_NAMES.includes(d.nom_commune)) return 0.4;
+        return 0.3;
+      })
+      .attr("r", d => {
+        if (METROPOLE_NAMES.includes(d.nom_commune)) return 6;
+        if (TOP_BRUT_NAMES.includes(d.nom_commune)) return 3;
+        return 2;
+      });
+  }
+  else if (state === "seuil") {
+    thresholdLine.transition().duration(600).attr("opacity", 0.85);
+    points.transition().duration(600)
+      .attr("fill", "#B8C5D0")
+      .attr("opacity", d => d.population < 10000 ? 0.05 : 0.6)
+      .attr("r", d => d.population < 10000 ? 1 : 2.5);
+  }
+  else if (state === "top10-corrige") {
+    thresholdLine.transition().duration(600).attr("opacity", 0.5);
+    points.transition().duration(600)
+      .attr("fill", d => {
+        if (TOP_CORRIGE_NAMES.includes(d.nom_commune)) return "#27AE60";
+        return "#B8C5D0";
+      })
+      .attr("opacity", d => {
+        if (TOP_CORRIGE_NAMES.includes(d.nom_commune)) return 1;
+        if (d.population < 10000) return 0.05;
+        return 0.4;
+      })
+      .attr("r", d => {
+        if (TOP_CORRIGE_NAMES.includes(d.nom_commune)) return 6;
+        return 2;
+      });
+  }
+}
+
+function setupScrollama(data) {
+  const scroller = scrollama();
+  scroller
+    .setup({ step: "#scrolly-scatter .scrolly-step", offset: 0.7 })
+    .onStepEnter(({ element }) => {
+      applyState(element.dataset.state, data);
+    });
+  window.addEventListener("resize", () => scroller.resize());
+}
+</script>
+
+</body>
+</html>

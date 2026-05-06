@@ -3,8 +3,23 @@
 # =====================================================================
 data/delinquance/*.csv
 
+# Filet de sécurité : tout CSV SSMSI peu importe où il a atterri
+# (le CSV 593 Mo a été trouvé dans episodes/01_cambriolages/ par erreur)
+**/donnee-data.gouv-*.csv
+**/SSMSI*.csv
+
+# Tout fichier > limite GitHub, où qu'il soit dans le dépôt :
+# règle générique pour les très gros CSV. Décommenter si besoin.
+# **/*.parquet
+
 # Référentiels téléchargés automatiquement par les scripts
 data/referentiels/
+
+# =====================================================================
+# Œuvres copyrightées (NE PAS pousser sur un repo public sous CC BY)
+# =====================================================================
+The-Data-Journalism-Handbook-*.pdf
+**/The-Data-Journalism-Handbook-*.pdf
 
 # =====================================================================
 # Outputs régénérés à chaque rendu Quarto
@@ -18,9 +33,15 @@ episodes/*/lycees_*.csv
 episodes/*/top10_*.csv
 
 # =====================================================================
-# Brouillons de rédaction (privés)
+# Brouillons de rédaction et notes de relecture (privés)
 # =====================================================================
 episodes/*/redactions.md
+episodes/*/Commentaires*.md
+episodes/*/Relecture*.md
+episodes/*/recherches_bibliographiques.md
+# (ce dernier contient l'inventaire des 27 sources Europresse/PDF
+# académiques utilisées pour l'épisode — utile en local, non publiable
+# en l'état car certaines références sont sous copyright)
 
 # =====================================================================
 # Espace Notion (privé, contient pricing et templates commerciaux)

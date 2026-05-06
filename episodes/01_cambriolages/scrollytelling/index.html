@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vieille-Toulouse, capitale du cambriolage ? — Épisode 1</title>
+<meta name="description" content="L'illusion des petits nombres, épisode 1. Le palmarès des communes les plus cambriolées de France à partir des données SSMSI 2024.">
+<meta name="author" content="Sacha Zaouati">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://unpkg.com/scrollama@3.2.0/build/scrollama.min.js"></script>
+
+<style>
+:root {
+  --col-text: #1A1A1A;
+  --col-text-soft: #555;
+  --col-muted: #888;
+  --col-bg: #FAFAF7;
+  --col-bg-card: #FFFFFF;
+  --col-accent: #E74C3C;
+  --col-accent-2: #1F4E79;
+  --col-rule: #E8E5DD;
+  --serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+  --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  --max-width: 720px;
+  --max-width-wide: 1280px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--serif);
+  font-size: 19px;
+  line-height: 1.65;
+  color: var(--col-text);
+  background: var(--col-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+p { margin: 0 0 1.2em 0; }
+a { color: var(--col-accent-2); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { color: var(--col-accent); }
+em { font-style: italic; }
+strong { font-weight: 600; color: var(--col-text); }
+
+/* ========== HERO ========== */
+.hero {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 96px 24px 32px;
+}
+
+.kicker {
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--col-accent);
+  margin-bottom: 20px;
+}
+
+h1 {
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: clamp(36px, 6vw, 52px);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 24px;
+  color: var(--col-text);
+}
+
+.subtitle {
+  font-family: var(--serif);
+  font-size: clamp(20px, 2.4vw, 24px);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--col-text-soft);
+  line-height: 1.4;
+  margin-bottom: 40px;
+}
+
+.byline {
+  font-family: var(--sans);
+  font-size: 14px;
+  color: var(--col-muted);
+  border-top: 1px solid var(--col-rule);
+  border-bottom: 1px solid var(--col-rule);
+  padding: 14px 0;
+  margin-bottom: 48px;
+}
+
+.byline a { color: inherit; text-decoration: none; }
+.byline a:hover { color: var(--col-accent); }
+
+/* ========== INTRO ========== */
+.intro {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.intro p { font-size: 21px; line-height: 1.6; }
+
+.big-number {
+  font-family: var(--serif);
+  font-size: clamp(72px, 12vw, 120px);
+  font-weight: 700;
+  color: var(--col-accent);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  text-align: center;
+  margin: 60px 0 8px;
+}
+
+.big-number-caption {
+  text-align: center;
+  font-family: var(--sans);
+  font-size: 14px;
+  color: var(--col-muted);
+  margin-bottom: 60px;
+  letter-spacing: 0.05em;
+}
+
+/* ========== SCROLLY (split-screen) ========== */
+.scrolly {
+  position: relative;
+  max-width: var(--max-width-wide);
+  margin: 64px auto;
+  padding: 0 24px;
+  display: grid;
+  grid-template-columns: 6fr 4fr;
+  gap: 50px;
+  align-items: start;
+}
+
+.scrolly-graphic {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 5vh;
+  height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scrolly-graphic-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.scrolly-graphic img {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  margin: auto;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.scrolly-graphic img.is-active { opacity: 1; }
+
+.scrolly-text {
+  position: relative;
+  padding-top: 0;
+}
+
+/* SPACER : on voit le graphique seul avant qu'arrive le 1er texte */
+.scrolly-text-spacer {
+  height: 70vh;
+}
+
+.scrolly-step {
+  min-height: 95vh;
+  display: flex;
+  align-items: center;
+  padding: 30px 0;
+}
+
+.scrolly-step-card {
+  background: var(--col-bg-card);
+  border: 1px solid var(--col-rule);
+  border-radius: 4px;
+  padding: 24px 28px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.55;
+  width: 100%;
+}
+
+.scrolly-step-card .step-num {
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  color: var(--col-accent);
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.scrolly-step-card p { margin: 0; }
+.scrolly-step-card p + p { margin-top: 0.7em; }
+.scrolly-step-card ul { margin: 0.5em 0 0 1.2em; padding: 0; }
+.scrolly-step-card li { margin-bottom: 0.3em; }
+
+/* Mobile : on repasse en vertical */
+@media (max-width: 900px) {
+  .scrolly {
+    display: block;
+    padding: 0 16px;
+  }
+  .scrolly-graphic {
+    top: 8vh;
+    height: 60vh;
+    margin-bottom: 0;
+  }
+  .scrolly-text { margin-top: 0; }
+  .scrolly-text-spacer { height: 30vh; }
+  .scrolly-step { min-height: 80vh; padding: 20px 0; }
+  .scrolly-step-card { padding: 18px 20px; font-size: 16px; }
+}
+
+/* ========== FIGURE BLOCK (full-width single graphic) ========== */
+.figure-block {
+  max-width: var(--max-width-wide);
+  margin: 80px auto;
+  padding: 0 24px;
+  text-align: center;
+}
+
+.figure-block img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+.figure-block .caption {
+  font-family: var(--sans);
+  font-size: 14px;
+  color: var(--col-muted);
+  margin-top: 14px;
+  max-width: 580px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ========== TEXT BLOCK ========== */
+.text-block {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 32px 24px;
+}
+
+.text-block h2 {
+  font-family: var(--serif);
+  font-size: clamp(28px, 4vw, 36px);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  margin: 32px 0 16px;
+  color: var(--col-text);
+}
+
+.text-block h3 {
+  font-family: var(--serif);
+  font-size: 21px;
+  font-weight: 600;
+  margin: 28px 0 12px;
+  color: var(--col-text);
+}
+
+.text-block p { font-size: 19px; line-height: 1.65; color: var(--col-text); }
+
+/* ========== CTA / NEXT EPISODE ========== */
+.cta {
+  max-width: var(--max-width);
+  margin: 60px auto;
+  padding: 36px 32px;
+  background: var(--col-text);
+  color: white;
+  text-align: left;
+  border-radius: 4px;
+}
+
+.cta-kicker {
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: rgba(231, 76, 60, 0.95);
+  margin-bottom: 10px;
+}
+
+.cta h3 {
+  font-family: var(--serif);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 10px;
+  color: white;
+}
+
+.cta p {
+  color: rgba(255,255,255,0.8);
+  font-family: var(--serif);
+  font-size: 17px;
+  margin: 0;
+}
+
+/* ========== METHOD + FOOTER ========== */
+.method {
+  max-width: var(--max-width);
+  margin: 80px auto 24px;
+  padding: 32px 24px;
+  border-top: 1px solid var(--col-rule);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--col-text-soft);
+}
+
+.method h3 {
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--col-text);
+  margin: 0 0 12px;
+}
+
+.method p { margin-bottom: 14px; }
+
+.footer {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 24px 24px 80px;
+  text-align: center;
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--col-muted);
+}
+
+.divider {
+  max-width: 80px;
+  margin: 48px auto;
+  border: none;
+  border-top: 2px solid var(--col-text);
+}
+</style>
+</head>
+
+<body>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="kicker">L'illusion des petits nombres — épisode 1 sur 10</div>
+  <h1>J'ai téléchargé 5 millions de lignes de données sur la délinquance. Voici ce que j'y ai trouvé.</h1>
+  <p class="subtitle">Le palmarès des « communes les plus cambriolées de France » à partir des données SSMSI 2024.</p>
+  <div class="byline">
+    Par Sacha Zaouati &nbsp;•&nbsp; 5 mai 2026 &nbsp;•&nbsp; <a href="mailto:sacha.zaouati@gmail.com">sacha.zaouati@gmail.com</a>
+  </div>
+</header>
+
+<!-- INTRO -->
+<section class="intro">
+  <p>Vieille-Toulouse, Haute-Garonne. 1 230 habitants. 37 cambriolages enregistrés en 2024. Taux :</p>
+
+  <div class="big-number">67,9 ‰</div>
+  <div class="big-number-caption">CAMBRIOLAGES POUR 1 000 LOGEMENTS — VIEILLE-TOULOUSE, 2024</div>
+
+  <p>C'est le taux le plus élevé de France pour les communes dont le ministère de l'Intérieur publie le chiffre 2024. Si Paris connaissait le même taux, le nombre annuel de cambriolages dans la capitale serait d'environ 95 000. Le chiffre réel est de 9 235.</p>
+
+  <p>L'écart entre ces deux chiffres ne vient pas d'une différence de criminalité, mais d'une mécanique mathématique. Cette page la décompose.</p>
+</section>
+
+<hr class="divider">
+
+<!-- SCROLLY 1 : the scatter -->
+<section class="scrolly" id="scrolly-scatter">
+  <div class="scrolly-graphic">
+    <div class="scrolly-graphic-inner" id="graphic-scatter">
+      <img src="svg/01_scatter_base.svg" data-step="1" alt="Nuage de points : population × taux de cambriolages, toutes les communes diffusées">
+      <img src="svg/02_scatter_vieille_toulouse.svg" data-step="2" alt="Nuage avec Vieille-Toulouse mise en évidence">
+      <img src="svg/03_scatter_top10_brut.svg" data-step="3" alt="Nuage avec les 10 communes du top brut mises en évidence">
+      <img src="svg/04_scatter_metropoles.svg" data-step="4" alt="Nuage avec Paris, Lyon, Marseille, Lille, Bordeaux, Toulouse annotés">
+      <img src="svg/05_scatter_seuil.svg" data-step="5" alt="Le seuil méthodologique de 10 000 habitants tracé">
+      <img src="svg/06_scatter_top10_corrige.svg" data-step="6" alt="Le top 10 corrigé : Vétraz-Monthoux, Saint-Avertin, Cestas, etc.">
+    </div>
+  </div>
+
+  <div class="scrolly-text">
+    <div class="scrolly-text-spacer"></div>
+
+    <div class="scrolly-step" data-step="1">
+      <div class="scrolly-step-card">
+        <span class="step-num">Le nuage</span>
+        <p>10 951 communes. Chaque point représente une commune. Abscisse : population (échelle logarithmique). Ordonnée : nombre de cambriolages enregistrés en 2024 pour 1 000 logements.</p>
+      </div>
+    </div>
+
+    <div class="scrolly-step" data-step="2">
+      <div class="scrolly-step-card">
+        <span class="step-num">Vieille-Toulouse</span>
+        <p>1 230 habitants, 37 cambriolages. Taux : 67,9 ‰. C'est le point le plus haut du jeu de données.</p>
+      </div>
+    </div>
+
+    <div class="scrolly-step" data-step="3">
+      <div class="scrolly-step-card">
+        <span class="step-num">Le top 10 brut</span>
+        <p>Les dix communes au taux le plus élevé. 9 sur 10 ont moins de 4 000 habitants. Boissettes (Seine-et-Marne, 437 habitants) entre dans ce classement avec 7 cambriolages enregistrés dans l'année.</p>
+      </div>
+    </div>
+
+    <div class="scrolly-step" data-step="4">
+      <div class="scrolly-step-card">
+        <span class="step-num">Les grandes villes</span>
+        <p>Paris : 6,6 ‰. Marseille : 9,6 ‰. Lyon : 7,9 ‰. Lille : 9,5 ‰. Toutes situées entre 6 et 10 ‰. Aucune n'apparaît dans le top 10 brut. La bande beige indique la zone des communes ≥ 10 000 habitants.</p>
+      </div>
+    </div>
+
+    <div class="scrolly-step" data-step="5">
+      <div class="scrolly-step-card">
+        <span class="step-num">Le seuil</span>
+        <p>On retire les communes de moins de 10 000 habitants. Reste : 1 116 communes sur 10 951. Le seuil n'est pas mathématique. C'est un choix méthodologique inspiré des seuils utilisés dans le secteur sanitaire (300 accouchements/an pour les maternités, 50 interventions pour les centres de chirurgie cardiaque).</p>
+      </div>
+    </div>
+
+    <div class="scrolly-step" data-step="6">
+      <div class="scrolly-step-card">
+        <span class="step-num">Le top 10 corrigé</span>
+        <p>Les dix communes au taux le plus élevé parmi les 1 116 retenues. 7 sur 10 sont des banlieues pavillonnaires de métropoles régionales (Tours, Bordeaux, Rouen, Rennes, Metz). 2 sont en Guyane (Kourou, Saint-Laurent-du-Maroni).</p>
+        <p>Aucune n'apparaît dans le top 10 brut.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- TRANSITION -->
+<section class="text-block">
+  <h2>Pourquoi un écart pareil entre les deux palmarès ?</h2>
+  <p>Trois faits suffisent à le décrire.</p>
+</section>
+
+<!-- FUNNEL -->
+<section class="figure-block">
+  <img src="svg/07_funnel.svg" alt="Entonnoir : 34 945 communes en France → 10 951 dont le taux est diffusé → 1 116 ≥ 10 000 habitants">
+  <div class="caption">Sources : INSEE 2025, SSMSI / data.gouv.fr.</div>
+</section>
+
+<section class="text-block">
+  <h3>Fait n° 1 — Le ministère masque déjà les plus petites communes</h3>
+  <p>Le SSMSI ne diffuse pas tous les chiffres communaux. Pour préserver la confidentialité, les communes où le nombre de cambriolages est trop faible pour être anonymisable sont masquées (champ <code>est_diffuse</code>). 10 951 communes sont diffusées, sur 34 945 communes en France selon le Code officiel géographique INSEE 2025.</p>
+
+  <h3>Fait n° 2 — Le seuil de 10 000 est conventionnel</h3>
+  <p>Il n'existe pas de seuil mathématique « vrai ». Les autorités sanitaires utilisent des seuils de fiabilité du même ordre : 300 accouchements par an minimum pour une maternité, 50 interventions par an pour un centre de chirurgie cardiaque. En dessous, les taux d'échec calculés sur trop peu de cas ne sont plus interprétables individuellement.</p>
+
+  <h3>Fait n° 3 — Démonstration par simulation</h3>
+  <p>Le scatter ci-dessous est une simulation : 1 000 communes parfaitement identiques, observées sur une année.</p>
+</section>
+
+<!-- SCROLLY 2 : simulation -->
+<section class="scrolly" id="scrolly-simulation">
+  <div class="scrolly-graphic">
+    <div class="scrolly-graphic-inner" id="graphic-simulation">
+      <img src="svg/08_simulation_petit_n.svg" data-step="1" alt="1000 communes simulées de 200 logements, taux observés très dispersés malgré une vraie probabilité identique">
+      <img src="svg/09_simulation_grand_n.svg" data-step="2" alt="Mêmes 1000 communes simulées avec 50 000 logements chacune, taux observés concentrés autour de la vraie valeur">
+    </div>
+  </div>
+
+  <div class="scrolly-text">
+    <div class="scrolly-text-spacer"></div>
+
+    <div class="scrolly-step" data-step="1">
+      <div class="scrolly-step-card">
+        <span class="step-num">Petit n — 200 logements par commune</span>
+        <p>Paramètres : 1 000 communes, 200 logements chacune, probabilité réelle qu'un logement soit cambriolé fixée à 5 ‰ (moyenne nationale). Pour chaque commune, on tire un nombre de cambriolages selon une loi de Poisson(λ = n × p) = Poisson(1).</p>
+        <p>Résultats observés :</p>
+        <ul>
+          <li>392 communes à 0 cambriolage.</li>
+          <li>84 communes à un taux ≥ 15 ‰.</li>
+          <li>Maximum observé : 25 ‰.</li>
+        </ul>
+        <p>Toutes ces communes sont identiques en réalité. La dispersion observée vient uniquement du tirage aléatoire.</p>
+      </div>
+    </div>
+
+    <div class="scrolly-step" data-step="2">
+      <div class="scrolly-step-card">
+        <span class="step-num">Grand n — 50 000 logements par commune</span>
+        <p>Mêmes 1 000 communes, même probabilité réelle de 5 ‰, mais 50 000 logements chacune. Tous les taux observés tombent entre 4,2 et 6,0 ‰.</p>
+        <p>L'écart-type théorique passe de 5,0 ‰ à 0,32 ‰ entre les deux simulations.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FORMULE -->
+<section class="figure-block">
+  <img src="svg/10_formule.svg" alt="Formule de l'écart-type d'un taux : σ ≈ √(p/n)">
+</section>
+
+<section class="text-block">
+  <p>L'écart-type du taux observé décroît en 1/√n. Pour Boissettes (n ≈ 200 logements), σ ≈ 5 ‰. Pour Paris (n ≈ 1 400 000 logements), σ ≈ 0,07 ‰. Le rapport est d'environ 70.</p>
+
+  <h2>Régression vers la moyenne</h2>
+  <p>Conséquence directe du fait n° 3 : les communes qui apparaissent dans le top brut une année donnée ont une faible probabilité d'y figurer l'année suivante. Sur les 10 communes du top brut 2024, on peut prédire que la majorité aura disparu du top 100 en 2025.</p>
+  <p>Cette prédiction sera vérifiable et vérifiée ici en mai 2027, à la publication de la base SSMSI 2025.</p>
+
+  <h2>Les sources et le code</h2>
+  <p>Toutes les données viennent de la base communale SSMSI 2024 publiée sur data.gouv.fr en février 2026. L'analyse a été faite en R (Quarto) et est entièrement reproductible. Les scripts qui génèrent les graphiques sont également disponibles. Voir la note méthodologique en bas de page.</p>
+</section>
+
+<!-- CTA -->
+<aside class="cta">
+  <div class="cta-kicker">Demain — Épisode 2</div>
+  <h3>Les lycées « à 100 % de réussite » au bac</h3>
+  <p>Le mythe du lycée parfait repose presque toujours sur des classes de moins de trente élèves. Même mécanique mathématique que ci-dessus.</p>
+</aside>
+
+<!-- METHOD -->
+<section class="method">
+  <h3>Note méthodologique</h3>
+  <p><strong>Source.</strong> Service Statistique Ministériel de la Sécurité Intérieure (SSMSI), <a href="https://www.data.gouv.fr/datasets/bases-statistiques-communale-departementale-et-regionale-de-la-delinquance-enregistree-par-la-police-et-la-gendarmerie-nationales/">base communale 2025</a> publiée en février 2026, indicateur « Cambriolages de logement », année 2024. Le taux est calculé par le SSMSI lui-même par 1 000 logements, à partir du recensement INSEE.</p>
+  <p><strong>Périmètre.</strong> 10 951 communes diffusées sur 34 945 communes françaises (INSEE 2025). Les libellés et populations communales viennent du Code officiel géographique INSEE 2025.</p>
+  <p><strong>Simulation.</strong> Tirages indépendants de Poisson(λ = n × p), avec n = nombre de logements, p = 0,005 (taux moyen national). Graine fixée à 42. Code source dans le dépôt GitHub.</p>
+  <p><strong>Reproductibilité.</strong> Code (R + Quarto + scripts ggplot2) et données extraites : <a href="https://github.com/sachazaouati/illusion-petits-nombres">github.com/sachazaouati/illusion-petits-nombres</a>. Code MIT, articles et graphiques CC BY 4.0.</p>
+</section>
+
+<footer class="footer">
+  <p>Sacha Zaouati — datajournaliste indépendant.</p>
+</footer>
+
+<script>
+const scatterImages = document.querySelectorAll('#graphic-scatter img');
+const simImages = document.querySelectorAll('#graphic-simulation img');
+
+function setActiveImage(images, step) {
+  images.forEach(img => {
+    img.classList.toggle('is-active', img.dataset.step === String(step));
+  });
+}
+
+setActiveImage(scatterImages, 1);
+setActiveImage(simImages, 1);
+
+const scatterScroller = scrollama();
+scatterScroller
+  .setup({
+    step: '#scrolly-scatter .scrolly-step',
+    offset: 0.7,
+  })
+  .onStepEnter(({ element }) => {
+    setActiveImage(scatterImages, element.dataset.step);
+  });
+
+const simScroller = scrollama();
+simScroller
+  .setup({
+    step: '#scrolly-simulation .scrolly-step',
+    offset: 0.7,
+  })
+  .onStepEnter(({ element }) => {
+    setActiveImage(simImages, element.dataset.step);
+  });
+
+window.addEventListener('resize', () => {
+  scatterScroller.resize();
+  simScroller.resize();
+});
+</script>
+
+</body>
+</html>

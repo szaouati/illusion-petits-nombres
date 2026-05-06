@@ -217,22 +217,22 @@ Pour toute rédaction de paragraphe, section, encart, légende ou note méthodol
 - [x] Contenu rédigé du PDF intégré dans `episode_01.qmd` (le `.qmd` redevient la source canonique ; le PDF de design est conservé en archive)
 - [x] YAML du `.qmd` en multi-format (HTML + PDF via `quarto render`)
 - [x] Funnel plot Spiegelhalter posé en local (`funnel_plot_spiegelhalter.png/svg`)
-- [ ] Intégrer dans l'article les deux corrections statistiques pointées dans `Relecture 1.md` (hypothèse de communes identiques + mécanisme de la régression vers la moyenne)
-- [ ] Intégrer l'encart « défense des palmarès » (yardstick competition Besley & Case 1995, Burgess et al. au Pays de Galles) — déjà drafté dans `Relecture 1.md`
-- [ ] Insérer dans le `.qmd` le funnel plot Spiegelhalter (chunk + commentaire)
-- [ ] Ajouter un palmarès *Empirical Bayes* (`ebbr`) en complément du seuil ≥ 10 000, à présenter en note méthodologique
-- [ ] Audit accessibilité du graphique principal (alt text, simulation daltonisme avec `colorblindr`)
-- [ ] Trancher : `scrollytelling/` (canonique) vs `scrollytelling-v2-interactif/` (test à améliorer plus tard) — la décision actuelle est : `scrollytelling/` est canonique
-- [x] **Bug structure** : déplacer le CSV SSMSI 593 Mo de `episodes/01_cambriolages/` vers `data/delinquance/` et corriger le chemin dans `episode_01.qmd`
+- [x] Intégrer dans l'article les deux corrections statistiques pointées dans `Relecture 1.md` (hypothèse de communes identiques + mécanisme de la régression vers la moyenne)
+- [x] Intégrer l'encart « défense des palmarès » (yardstick competition Besley & Case 1995, Burgess et al. au Pays de Galles)
+- [x] Insérer dans le `.qmd` le funnel plot Spiegelhalter (chunk Gamma-Poisson + intervalles exacts)
+- [x] Ajouter un palmarès *Empirical Bayes* (conjugué Gamma-Poisson, paramètres estimés par méthode des moments — Robbins 1956, Efron & Morris 1975)
+- [x] Audit accessibilité du graphique principal (`fig-alt` sur 3 chunks ggplot + chunk `colorblindr` conditionnel)
+- [x] Trancher : `scrollytelling/` est **canonique** pour publication ; `scrollytelling-v2-interactif/` est un **prototype D3 conservé en archive**, ne pas supprimer
+- [x] **Bug structure** : CSV SSMSI déjà dans `data/delinquance/` — chemin relatif correct dans `episode_01.qmd`
 
 **Infrastructure projet**
 - [x] `CLAUDE.md` à la racine
 - [x] Skill custom `.claude/skills/nouvel-episode/SKILL.md`
 - [x] Dossier `docs/` à la racine + `.nojekyll` + page d'accueil
 - [x] Script `build.R` à la racine pour peupler `docs/episode-XX/` depuis `episodes/XX_thème/scrollytelling/`
-- [x] Activer GitHub Pages côté serveur : Settings > Pages > Source: `main` branch + dossier `/docs`. Attendre 1-10 min, vérifier l'URL `https://sachazaouati.github.io/illusion-petits-nombres/`
-- [ ] Initialiser `renv` à la racine
-- [ ] Créer `theme_petits_nombres.R` à la racine (palette + thème ggplot factorisés)
+- [x] Activer GitHub Pages côté serveur (activé par Sacha le 2026-05-06)
+- [ ] Initialiser `renv` : lancer `renv::init()` depuis RStudio Console à la racine (crée `renv/`, `renv.lock`, `.Rprofile` automatiquement — ne pas créer ces fichiers à la main)
+- [x] Créer `theme_petits_nombres.R` à la racine (palette + thème ggplot factorisés)
 
 **Épisodes suivants**
 - [ ] Lancer la rédaction de l'épisode 02 (Lycées) — données dans `data/lycees/fr-en-baccalaureat-par-academie.csv`
@@ -249,5 +249,5 @@ Pour toute rédaction de paragraphe, section, encart, légende ou note méthodol
 
 ---
 
-*Dernière mise à jour : 2026-05-06 — par Claude (session de cadrage initial)*
+*Dernière mise à jour : 2026-05-06 — chantiers section 10 mis à jour (accessibilité, theme, coches)*
 *À mettre à jour à chaque évolution majeure de la méthode, du stack ou de la structure.*

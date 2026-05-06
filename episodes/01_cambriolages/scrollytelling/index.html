@@ -260,6 +260,29 @@ footer {
   .step { min-height: 70vh; }
   .card { font-size: 15px; }
 }
+
+@media (max-width: 480px) {
+  .hero { padding: 40px 16px 18px; }
+  h1 { font-size: clamp(22px, 6.5vw, 30px); }
+  .intro p { font-size: 16px; }
+  .intro p:first-child { font-size: 17px; }
+  .graphic-col { height: 52vw; min-height: 220px; top: 4vh; }
+  .card { font-size: 14px; padding: 14px 16px; }
+  .card h3 { font-size: 15px; }
+  .big { font-size: 24px; }
+  .step { min-height: 65vh; }
+  .method { font-size: 12px; }
+}
+
+/* ── MODE EMBED (Substack iframe, ?embed=1) ── */
+body.embed .hero,
+body.embed .intro,
+body.embed .separator,
+body.embed .method,
+body.embed footer { display: none !important; }
+
+body.embed .scrolly { margin-top: 0; margin-bottom: 0; }
+body.embed { background: var(--col-bg); }
 </style>
 </head>
 
@@ -409,6 +432,8 @@ let gGrid, gFunnel, gAxes, gPts, gAnnot;
 let rateGlobal;
 let currentState = "base";
 
+const isMobile = () => W < 560;
+
 // ── Échelles ──────────────────────────────────────────────────────────────
 function buildScales() {
   const r = svg.node().getBoundingClientRect();
@@ -489,18 +514,18 @@ function renderPoints(data) {
       .attr("cx", d => xSc(Math.max(80, d.population)))
       .attr("cy", d => ySc(d.taux_pour_mille))
       .attr("r", 2).attr("fill", C.pts).attr("opacity", 0.45)
-      .on("mouseover", (event, d) => {
+      .on("pointerover", (event, d) => {
         tip.html(
           `<strong>${d.nom_commune}</strong> (${d.departement})<br>` +
           `${d.population.toLocaleString("fr-FR")} hab. · ${d.nb_cambriolages} cambriolages<br>` +
           `Taux : ${d.taux_pour_mille.toFixed(1)} ‰`
         ).classed("on", true);
       })
-      .on("mousemove", ev => {
+      .on("pointermove", ev => {
         tip.style("left", (ev.clientX + 14) + "px")
            .style("top",  (ev.clientY + 14) + "px");
       })
-      .on("mouseout", () => tip.classed("on", false));
+      .on("pointerout", () => tip.classed("on", false));
 }
 
 // ── Annotations inline sur le SVG ────────────────────────────────────────
@@ -533,6 +558,7 @@ function applyState(state, data) {
   clearAnnot();
   const pts = gPts.selectAll("circle.pt");
   const T = 550;
+  const mobile = isMobile();
 
   gFunnel.transition().duration(T).attr("opacity", 0);
 
@@ -547,11 +573,13 @@ function applyState(state, data) {
       .attr("opacity", d => d.nom_commune === "Vieille-Toulouse" ? 1      : 0.2)
       .attr("r",       d => d.nom_commune === "Vieille-Toulouse" ? 8      : 1.5);
 
-    const vt = data.find(d => d.nom_commune === "Vieille-Toulouse");
-    if (vt) {
-      const cx = xSc(vt.population), cy = ySc(vt.taux_pour_mille);
-      addCallout(cx + 6, cy - 6, cx + 24, cy - 44, C.red);
-      addLabel(cx + 26, cy - 56, ["Vieille-Toulouse", "67,9 ‰ · 1 230 hab."], C.red);
+    if (!mobile) {
+      const vt = data.find(d => d.nom_commune === "Vieille-Toulouse");
+      if (vt) {
+        const cx = xSc(vt.population), cy = ySc(vt.taux_pour_mille);
+        addCallout(cx + 6, cy - 6, cx + 24, cy - 44, C.red);
+        addLabel(cx + 26, cy - 56, ["Vieille-Toulouse", "67,9 ‰ · 1 230 hab."], C.red);
+      }
     }
   }
 
@@ -561,8 +589,10 @@ function applyState(state, data) {
       .attr("opacity", d => TOP_BRUT.includes(d.nom_commune) ? 0.95   : 0.18)
       .attr("r",       d => TOP_BRUT.includes(d.nom_commune) ? 5.5    : 1.5);
 
-    addLabel(W - MAR.right - 6, MAR.top + 14,
-      ["Top 10 brut", "9/10 ont < 4 000 hab."], C.red, "end");
+    if (!mobile) {
+      addLabel(W - MAR.right - 6, MAR.top + 14,
+        ["Top 10 brut", "9/10 ont < 4 000 hab."], C.red, "end");
+    }
   }
 
   else if (state === "metropoles") {
@@ -574,17 +604,18 @@ function applyState(state, data) {
       .attr("r",       d => METROPOLES.includes(d.nom_commune) ? 7
                           : TOP_BRUT.includes(d.nom_commune)   ? 3.5 : 1.5);
 
-    // Labels directs sur les métropoles
-    data.filter(d => METROPOLES.includes(d.nom_commune)).forEach(d => {
-      const cx = xSc(d.population), cy = ySc(d.taux_pour_mille);
-      const label = d.nom_commune === "Paris"
-        ? "Paris · 6,6 ‰" : d.nom_commune;
-      gAnnot.append("text")
-        .attr("x", cx + 9).attr("y", cy + 4)
-        .attr("font-family", "Inter, sans-serif").attr("font-size", "10px")
-        .attr("font-weight", "600").attr("fill", C.blue)
-        .text(label);
-    });
+    if (!mobile) {
+      data.filter(d => METROPOLES.includes(d.nom_commune)).forEach(d => {
+        const cx = xSc(d.population), cy = ySc(d.taux_pour_mille);
+        const label = d.nom_commune === "Paris"
+          ? "Paris · 6,6 ‰" : d.nom_commune;
+        gAnnot.append("text")
+          .attr("x", cx + 9).attr("y", cy + 4)
+          .attr("font-family", "Inter, sans-serif").attr("font-size", "10px")
+          .attr("font-weight", "600").attr("fill", C.blue)
+          .text(label);
+      });
+    }
   }
 
   else if (state === "seuil") {
@@ -599,8 +630,10 @@ function applyState(state, data) {
       .attr("y1", MAR.top).attr("y2", H - MAR.bottom)
       .attr("stroke", "#444").attr("stroke-width", 1.5)
       .attr("stroke-dasharray", "5,4");
-    addLabel(x10k + 6, MAR.top + 14,
-      ["Seuil : 10 000 hab.", "1 116 communes retenues"], "#444");
+    if (!mobile) {
+      addLabel(x10k + 6, MAR.top + 14,
+        ["Seuil : 10 000 hab.", "1 116 communes retenues"], "#444");
+    }
   }
 
   else if (state === "top10-corrige") {
@@ -617,8 +650,10 @@ function applyState(state, data) {
       .attr("y1", MAR.top).attr("y2", H - MAR.bottom)
       .attr("stroke", "#aaa").attr("stroke-width", 1)
       .attr("stroke-dasharray", "4,4");
-    addLabel(W - MAR.right - 6, MAR.top + 14,
-      ["Top 10 corrigé", "banlieues de métropoles + Guyane"], C.green, "end");
+    if (!mobile) {
+      addLabel(W - MAR.right - 6, MAR.top + 14,
+        ["Top 10 corrigé", "banlieues de métropoles + Guyane"], C.green, "end");
+    }
   }
 
   else if (state === "funnel") {
@@ -629,8 +664,10 @@ function applyState(state, data) {
       .attr("opacity", d => d.hors_entonnoir ? 0.85 : 0.12)
       .attr("r",       d => d.hors_entonnoir ? 3.5  : 1.5);
 
-    addLabel(W - MAR.right - 6, ySc(rateGlobal) - 6,
-      [`Taux national moyen : ${rateGlobal.toFixed(1)} ‰`], C.blue, "end");
+    if (!mobile) {
+      addLabel(W - MAR.right - 6, ySc(rateGlobal) - 6,
+        [`Taux national moyen : ${rateGlobal.toFixed(1)} ‰`], C.blue, "end");
+    }
   }
 }
 
@@ -684,6 +721,11 @@ function setupScrollama(data) {
     .setup({ step: "#scrolly .step", offset: 0.6 })
     .onStepEnter(({ element }) => applyState(element.dataset.state, data));
   window.addEventListener("resize", () => scroller.resize());
+}
+
+// Mode embed : ?embed=1 masque hero/intro/méthodo/footer pour Substack
+if (new URLSearchParams(location.search).get("embed") === "1") {
+  document.body.classList.add("embed");
 }
 </script>
 </body>

@@ -102,8 +102,9 @@ cat("Cambriolages totaux :", format(sum(cambri$nb_cambriolages), big.mark = " ")
 #| fig-width: 10
 #| fig-height: 6
 #| fig-cap: "Taux de cambriolages 2024 selon la taille de la commune. Chaque point = une commune."
+#| fig-alt: "Nuage de points (échelle logarithmique en abscisse) montrant le taux de cambriolages pour 1 000 habitants en fonction de la population communale. À gauche (communes de moins de 1 000 habitants), les points sont très dispersés verticalement, avec des taux allant de 0 à plus de 50 ‰. À droite (communes de plus de 10 000 habitants), la dispersion se resserre fortement et les taux convergent vers une bande étroite autour de 5–10 ‰."
 
-ggplot(cambri, aes(x = population, y = taux_pour_mille)) +
+p_static <- ggplot(cambri, aes(x = population, y = taux_pour_mille)) +
   geom_point(alpha = 0.15, size = 0.5, color = "#4A9EBD") +
   scale_x_log10(
     breaks = c(100, 300, 1000, 10000, 100000),
@@ -120,6 +121,8 @@ ggplot(cambri, aes(x = population, y = taux_pour_mille)) +
     caption = "Source : SSMSI / data.gouv.fr • Analyse : Sacha Zaouati"
   ) +
   theme_minimal(base_size = 12)
+
+p_static
 ```
 
 ## Le graphique interactif
@@ -270,6 +273,7 @@ Il n'existe pas de seuil mathématique « vrai ». Les autorités sanitaires uti
 #| fig-width: 9
 #| fig-height: 4.5
 #| fig-cap: "Simulation : 1 000 communes IDENTIQUES de 200 logements, même probabilité réelle 5 ‰. La dispersion observée vient uniquement du tirage aléatoire."
+#| fig-alt: "Graphique en essaim (strip plot) montrant la distribution des taux observés pour 1 000 communes simulées, toutes identiques avec un taux réel de 5 ‰. Les points s'étalent de 0 à environ 25 ‰ malgré l'absence de toute différence réelle. Une ligne rouge verticale marque le taux vrai commun à toutes les communes. Un rectangle orange en arrière-plan met en évidence la zone des 'communes les plus dangereuses', qui ne contient que du bruit statistique."
 
 set.seed(42)
 n_communes <- 1000
@@ -342,6 +346,7 @@ L'entonnoir s'évase à gauche (petites communes, marge énorme) et se resserre 
 #| fig-width: 10
 #| fig-height: 6
 #| fig-cap: "Entonnoir de Spiegelhalter (2005). Les communes en rouge sortent des bandes à 99,8 % — leur taux ne s'explique pas par la seule loterie statistique. Les communes grises ne sont que du bruit, fût-il spectaculaire."
+#| fig-alt: "Graphique en entonnoir (funnel plot) sur fond logarithmique. Deux rubans bleus en forme d'entonnoir, larges à gauche et resserrés à droite, représentent les intervalles de confiance à 95 % et 99,8 % autour du taux national moyen. La grande majorité des communes (en gris clair) se trouve à l'intérieur de l'entonnoir. Un faible nombre de communes (en rouge vif) dépassent la bande à 99,8 % : ce sont les seules dont le taux présente un signal statistiquement robuste."
 
 # Taux moyen national pondéré par la population
 rate_global <- sum(cambri$nb_cambriolages, na.rm = TRUE) /
@@ -527,6 +532,15 @@ Une [page scrollytelling autonome](scrollytelling/index.html) décompose la mêm
 **Encart redevabilité.** Besley, T. & Case, A. (1995), « Incumbent behavior: vote seeking, tax setting, and yardstick competition », *American Economic Review*, 85(1), 25–45. Burgess, S., Propper, C., Slater, H. & Wilson, D. (2005), « Who wins and who loses from school accountability? The distribution of educational gains in English primary schools », *CMPO Working Paper 05/128*.
 
 **Reproductibilité.** Code (R + Quarto + scripts ggplot2) et données extraites : <https://github.com/sachazaouati/illusion-petits-nombres>. Le `.qmd` est la source canonique ; il génère HTML et PDF via `quarto render` (le rendu PDF requiert TinyTeX, installable depuis Quarto avec `quarto install tinytex`). Code MIT, articles et graphiques CC BY 4.0.
+
+```{r accessibilite, include=TRUE}
+#| fig-width: 12
+#| fig-height: 8
+#| fig-cap: "Simulation des quatre déficiences de vision des couleurs les plus fréquentes appliquées au graphique principal. Produit par le package colorblindr (Wilke & Zhu)."
+#| fig-alt: "Grille de quatre variantes du graphique principal simulant les perceptions deutéranopie, protanopie, tritanopie et achromatopsie. Dans toutes les variantes, la structure du nuage reste lisible car la palette repose principalement sur la luminosité et la position, et non sur la seule teinte."
+#| eval: !expr requireNamespace("colorblindr", quietly = TRUE)
+colorblindr::cvd_grid(p_static)
+```
 
 ```{r exports, include=FALSE}
 # Exports CSV pour Datawrapper et publication GitHub

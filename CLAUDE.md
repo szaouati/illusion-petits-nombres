@@ -223,14 +223,14 @@ Pour toute rédaction de paragraphe, section, encart, légende ou note méthodol
 - [ ] Ajouter un palmarès *Empirical Bayes* (`ebbr`) en complément du seuil ≥ 10 000, à présenter en note méthodologique
 - [ ] Audit accessibilité du graphique principal (alt text, simulation daltonisme avec `colorblindr`)
 - [ ] Trancher : `scrollytelling/` (canonique) vs `scrollytelling-v2-interactif/` (test à améliorer plus tard) — la décision actuelle est : `scrollytelling/` est canonique
-- [ ] **Bug structure** : déplacer le CSV SSMSI 593 Mo de `episodes/01_cambriolages/` vers `data/delinquance/` et corriger le chemin dans `episode_01.qmd`
+- [x] **Bug structure** : déplacer le CSV SSMSI 593 Mo de `episodes/01_cambriolages/` vers `data/delinquance/` et corriger le chemin dans `episode_01.qmd`
 
 **Infrastructure projet**
 - [x] `CLAUDE.md` à la racine
 - [x] Skill custom `.claude/skills/nouvel-episode/SKILL.md`
 - [x] Dossier `docs/` à la racine + `.nojekyll` + page d'accueil
 - [x] Script `build.R` à la racine pour peupler `docs/episode-XX/` depuis `episodes/XX_thème/scrollytelling/`
-- [ ] Activer GitHub Pages côté serveur : Settings > Pages > Source: `main` branch + dossier `/docs`. Attendre 1-10 min, vérifier l'URL `https://sachazaouati.github.io/illusion-petits-nombres/`
+- [x] Activer GitHub Pages côté serveur : Settings > Pages > Source: `main` branch + dossier `/docs`. Attendre 1-10 min, vérifier l'URL `https://sachazaouati.github.io/illusion-petits-nombres/`
 - [ ] Initialiser `renv` à la racine
 - [ ] Créer `theme_petits_nombres.R` à la racine (palette + thème ggplot factorisés)
 

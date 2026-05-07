@@ -231,7 +231,7 @@ Pour toute rédaction de paragraphe, section, encart, légende ou note méthodol
 - [x] Dossier `docs/` à la racine + `.nojekyll` + page d'accueil
 - [x] Script `build.R` à la racine pour peupler `docs/episode-XX/` depuis `episodes/XX_thème/scrollytelling/`
 - [x] Activer GitHub Pages côté serveur (activé par Sacha le 2026-05-06)
-- [ ] Initialiser `renv` : lancer `renv::init()` depuis RStudio Console à la racine (crée `renv/`, `renv.lock`, `.Rprofile` automatiquement — ne pas créer ces fichiers à la main)
+- [x] Initialiser `renv` : lancer `renv::init()` depuis RStudio Console à la racine (crée `renv/`, `renv.lock`, `.Rprofile` automatiquement — ne pas créer ces fichiers à la main)
 - [x] Créer `theme_petits_nombres.R` à la racine (palette + thème ggplot factorisés)
 
 **Épisodes suivants**

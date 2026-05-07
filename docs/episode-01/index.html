@@ -228,6 +228,95 @@ h1 {
 .pt { transition: fill 0.55s ease, opacity 0.55s ease, r 0.55s ease; cursor: pointer; }
 .pt:hover { stroke: #111; stroke-width: 1; }
 
+/* ── TABLEAU COMPARATIF DES PALMARÈS ── */
+.comparison {
+  max-width: 1180px;
+  margin: 60px auto 40px;
+  padding: 36px 24px 24px;
+  border-top: 1px solid var(--col-rule);
+}
+.comparison h2 {
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: clamp(22px, 3vw, 30px);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  margin-bottom: 14px;
+}
+.comparison .lede {
+  font-family: var(--sans);
+  font-size: 15px;
+  color: var(--col-soft);
+  max-width: 700px;
+  margin-bottom: 32px;
+  line-height: 1.55;
+}
+.rankings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 20px;
+}
+.rank-col {
+  background: var(--col-card);
+  border: 1px solid var(--col-rule);
+  border-radius: 4px;
+  padding: 18px 16px 14px;
+}
+.rank-col.best {
+  border-color: var(--col-green);
+  border-width: 1px;
+  box-shadow: 0 0 0 1px var(--col-green);
+}
+.rank-title {
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--col-text);
+  margin: 0 0 6px;
+}
+.rank-col.best .rank-title { color: var(--col-green); }
+.rank-sub {
+  font-family: var(--sans);
+  font-size: 11px;
+  color: var(--col-muted);
+  line-height: 1.5;
+  margin-bottom: 12px;
+  min-height: 32px;
+}
+.rank-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-family: var(--sans);
+  font-size: 12.5px;
+}
+.rank-list li {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  gap: 6px;
+  padding: 4px 0;
+  border-bottom: 1px dashed #EEE;
+  color: #666;
+}
+.rank-list li:last-child { border-bottom: 0; }
+.rank-list li .rank-num   { color: var(--col-muted); font-weight: 600; }
+.rank-list li .rank-name  { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank-list li .rank-rate  { font-variant-numeric: tabular-nums; color: #666; }
+.rank-list li.multi-2     { color: #222; }
+.rank-list li.multi-3     { color: #000; font-weight: 600; background: #FFFBE6; }
+.rank-list li.multi-4     { color: var(--col-red); font-weight: 700; background: #FFF0EE; }
+.rank-list li.multi-2 .rank-rate, .rank-list li.multi-3 .rank-rate, .rank-list li.multi-4 .rank-rate { color: inherit; }
+.comparison-note {
+  font-family: var(--sans);
+  font-size: 11px;
+  color: var(--col-muted);
+  margin-top: 18px;
+  line-height: 1.55;
+  max-width: 700px;
+}
+
 /* ── NOTE MÉTHODO ── */
 .method {
   max-width: 680px;
@@ -366,7 +455,7 @@ body.embed { background: var(--col-bg); }
 
     <div class="step" data-state="base">
       <div class="card">
-        <span class="step-label">Étape 1 · 7</span>
+        <span class="step-label">Étape 1 · 8</span>
         <h3>10 951 communes</h3>
         <p>Chaque point représente une commune française dont le ministère de l'Intérieur publie les chiffres 2024. L'axe horizontal montre sa population (échelle logarithmique). L'axe vertical montre son taux de cambriolages pour 1 000 logements.</p>
         <p>Survolez un point pour voir le nom de la commune, sa population et ses chiffres.</p>
@@ -376,7 +465,7 @@ body.embed { background: var(--col-bg); }
 
     <div class="step" data-state="vieille-toulouse">
       <div class="card">
-        <span class="step-label">Étape 2 · 7</span>
+        <span class="step-label">Étape 2 · 8</span>
         <h3>Le point le plus haut</h3>
         <span class="big red">67,9 ‰</span>
         <p>Vieille-Toulouse, Haute-Garonne. 1 230 habitants. 37 cambriolages enregistrés en 2024. C'est le taux le plus élevé de France parmi les communes diffusées.</p>
@@ -386,7 +475,7 @@ body.embed { background: var(--col-bg); }
 
     <div class="step" data-state="top10-brut">
       <div class="card">
-        <span class="step-label">Étape 3 · 7</span>
+        <span class="step-label">Étape 3 · 8</span>
         <h3>Le palmarès qui fait peur</h3>
         <p>Les 10 communes au taux le plus élevé. <strong>9 sur 10 ont moins de 4 000 habitants.</strong> Boissettes, Seine-et-Marne : 437 habitants, 7 cambriolages dans l'année — suffit pour entrer dans ce classement.</p>
         <p>Ce type de palmarès est régulièrement publié dans la presse. Il mesure principalement une chose : la petite taille des communes, pas leur niveau réel de criminalité.</p>
@@ -395,7 +484,7 @@ body.embed { background: var(--col-bg); }
 
     <div class="step" data-state="metropoles">
       <div class="card">
-        <span class="step-label">Étape 4 · 7</span>
+        <span class="step-label">Étape 4 · 8</span>
         <h3>Les grandes villes sont absentes</h3>
         <span class="big blue">6 à 10 ‰</span>
         <p>Paris : 6,6 ‰. Marseille : 9,6 ‰. Lyon : 7,9 ‰. Bordeaux : 8,9 ‰. Toutes entre 6 et 10 ‰. Aucune n'approche du sommet du palmarès brut.</p>
@@ -405,7 +494,7 @@ body.embed { background: var(--col-bg); }
 
     <div class="step" data-state="seuil">
       <div class="card">
-        <span class="step-label">Étape 5 · 7</span>
+        <span class="step-label">Étape 5 · 8</span>
         <h3>La correction par seuil</h3>
         <p>En excluant les communes de moins de 10 000 habitants, on passe de 10 951 à <strong>1 116 communes</strong>. Le seuil n'est pas mathématique — c'est un choix méthodologique, inspiré des seuils utilisés en santé publique (300 accouchements/an pour une maternité).</p>
         <p>Le nuage se resserre. La dispersion à gauche disparaît. Ce qui reste est interprétable.</p>
@@ -414,17 +503,17 @@ body.embed { background: var(--col-bg); }
 
     <div class="step" data-state="top10-corrige">
       <div class="card">
-        <span class="step-label">Étape 6 · 7</span>
-        <h3>Le vrai classement</h3>
+        <span class="step-label">Étape 6 · 8</span>
+        <h3>Le top 10 après seuil</h3>
         <span class="big green">Un autre tableau</span>
-        <p>Parmi les 1 116 communes retenues : 7 sur 10 dans le top corrigé sont des banlieues pavillonnaires de métropoles régionales (Tours, Bordeaux, Rennes, Rouen…). 2 sont en Guyane. <strong>Aucune n'apparaissait dans le top 10 brut.</strong></p>
-        <p>C'est le même jeu de données. Seule la méthode a changé.</p>
+        <p>Parmi les 1 116 communes retenues : 7 sur 10 du top corrigé sont des banlieues pavillonnaires de métropoles régionales (Tours, Bordeaux, Rennes, Rouen…). 2 sont en Guyane. <strong>Aucune n'apparaissait dans le top 10 brut.</strong></p>
+        <p>Même jeu de données, méthode différente. Mais ce seuil reste arbitraire — il efface aussi des communes intéressantes.</p>
       </div>
     </div>
 
     <div class="step" data-state="funnel">
       <div class="card">
-        <span class="step-label">Étape 7 · 7</span>
+        <span class="step-label">Étape 7 · 8</span>
         <h3>L'entonnoir de Spiegelhalter</h3>
         <p>Sous l'hypothèse que toutes les communes partagent le taux national (6,4 ‰), on calcule pour chaque taille la fourchette des taux observables par hasard pur — loi de Poisson, calcul exact (pas d'approximation normale). Deux bandes : à 95 % (zone attendue) et à 99,8 % (zone d'alarme).</p>
         <p><strong style="color:var(--col-red)">547 communes</strong> sortent de la bande 99,8 % par le haut, <strong style="color:var(--col-orange)">392</strong> entre 95 % et 99,8 %. Sous Poisson pur on en attendrait 11 et 263 ; l'écart mesure une vraie hétérogénéité (surdispersion φ ≈ 4,6).</p>
@@ -433,11 +522,50 @@ body.embed { background: var(--col-bg); }
       </div>
     </div>
 
+    <div class="step" data-state="bayes">
+      <div class="card">
+        <span class="step-label">Étape 8 · 8</span>
+        <h3>Le lissage bayésien</h3>
+        <p>Au lieu de couper net (seuil) ou de classer par <em>p</em>-value (entonnoir), on tire chaque taux brut vers la moyenne nationale, d'autant plus fort que la commune est petite. Un village de 200 logements et 5 cambriolages voit son taux divisé par deux ; Lyon (200 000 logements) ne bouge presque pas.</p>
+        <p>Concrètement : on suppose que les vrais taux λ<sub>i</sub> suivent une loi Gamma(α, β) commune, on observe X<sub>i</sub> ~ Poisson(λ<sub>i</sub>·n<sub>i</sub>) et on calcule l'espérance <em>a posteriori</em> : <span style="font-family:var(--sans);font-weight:600">(α + X<sub>i</sub>) / (β + n<sub>i</sub>)</span>. C'est l'<em>Empirical Bayes</em> de Robbins (1956), version conjuguée Gamma-Poisson.</p>
+        <p><strong style="color:var(--col-green)">Vieille-Toulouse passe de 67,9 ‰ à 32,1 ‰ — soit 58 % de lissage.</strong> Elle reste à la 1<sup>re</sup> place du nouveau classement, mais la moitié de son taux brut était du bruit. Le top 10 lissé combine 3 petites communes statistiquement crédibles et 7 communes moyennes (5 000 à 17 000 hab.).</p>
+        <p class="note">Méthode : Empirical Bayes Gamma-Poisson, hyperparamètres estimés par méthode des moments (Marshall 1991, Clayton-Kaldor 1987). Robinson, <em>Introduction to Empirical Bayes</em>, package R <code>ebbr</code>.</p>
+      </div>
+    </div>
+
     <div class="spacer-btm"></div>
   </div>
 </section>
 
 <div class="tooltip" id="tt"></div>
+
+<section class="comparison" id="comparison">
+  <h2>Quatre classements pour les mêmes données</h2>
+  <p class="lede">Mêmes 10 951 communes, mêmes chiffres SSMSI 2024 — quatre méthodes statistiques, quatre top 10 différents. Les communes <strong style="color:var(--col-red)">surlignées en rouge</strong> apparaissent dans les quatre classements ; en jaune, dans trois ; en gris foncé, dans deux. Plus une commune ressort de toutes les méthodes, plus son rang est crédible.</p>
+  <div class="rankings-grid">
+    <div class="rank-col">
+      <h4 class="rank-title">Top 10 brut</h4>
+      <p class="rank-sub">Trier par taux décroissant. Méthode médiatique.</p>
+      <ol class="rank-list" id="rl-brut"></ol>
+    </div>
+    <div class="rank-col">
+      <h4 class="rank-title">Seuil ≥ 10 000 hab.</h4>
+      <p class="rank-sub">On exclut les petites communes. Filtre arbitraire.</p>
+      <ol class="rank-list" id="rl-seuil"></ol>
+    </div>
+    <div class="rank-col">
+      <h4 class="rank-title">Entonnoir (alarmes)</h4>
+      <p class="rank-sub">Trié par <em>p</em>-value Poisson — les anomalies les plus extrêmes.</p>
+      <ol class="rank-list" id="rl-funnel"></ol>
+    </div>
+    <div class="rank-col best">
+      <h4 class="rank-title">Lissage bayésien</h4>
+      <p class="rank-sub">Empirical Bayes Gamma-Poisson. Le palmarès statistiquement honnête.</p>
+      <ol class="rank-list" id="rl-bayes"></ol>
+    </div>
+  </div>
+  <p class="comparison-note">Les taux affichés sont en ‰ de logements (cambriolages 2024). Pour la colonne « lissage bayésien », c'est le taux <em>a posteriori</em> ; pour les trois autres, le taux brut observé. Les communes en intersection sont les seules qu'un journaliste pourrait raisonnablement citer comme « plus exposées que la moyenne en 2024 » — quelle que soit la méthode choisie.</p>
+</section>
 
 <section class="method">
   <h3>Note méthodologique</h3>
@@ -482,6 +610,7 @@ let MAR = { top: 28, right: 24, bottom: 52, left: 58 }; // recalculé dans build
 let W, H, dpr, xSc, ySc;
 let gGrid, gFunnel, gAxes, gAnnot;
 let rateGlobal, avgRatio, qtree;
+let TOP_BRUT_LIVE, TOP_SEUIL_LIVE, TOP_BAYES_LIVE, TOP_FUNNEL_LIVE;
 let currentState = "base";
 let animId = null;
 
@@ -778,6 +907,18 @@ function applyState(state, data, dur = 550) {
       } else {
         col = C.pts;    opacity = 0.10; r = 1.3;
       }
+    } else if (state === "bayes") {
+      const inEB    = TOP_BAYES_LIVE && TOP_BAYES_LIVE.includes(d.nom_commune);
+      const inBrut  = TOP_BRUT_LIVE  && TOP_BRUT_LIVE.includes(d.nom_commune);
+      if (inEB) {
+        // Top 10 corrigé par lissage bayésien : couleur de validation
+        col = C.green; opacity = 0.95; r = 5.5;
+      } else if (inBrut) {
+        // Anciens « champions » du top brut, désormais évincés : grisés en rouge pâle
+        col = C.red;   opacity = 0.30; r = 2.5;
+      } else {
+        col = C.pts;   opacity = 0.10; r = 1.3;
+      }
     }
 
     tR[i] = col[0]; tG[i] = col[1]; tB[i] = col[2]; tA[i] = opacity; tRad[i] = r;
@@ -821,6 +962,26 @@ function applyState(state, data, dur = 550) {
   } else if (state === "funnel") {
     gFunnel.transition().duration(750).attr("opacity", 1);
     if (!mobile) addLabel(W - MAR.right - 6, ySc(rateGlobal) - 6, ["Taux national moyen : " + rateGlobal.toFixed(1) + " ‰"], CS.blue, "end");
+
+  } else if (state === "bayes") {
+    if (!mobile && TOP_BAYES_LIVE) {
+      // Annotation Vieille-Toulouse : taux brut → taux EB
+      const vt = data.find(d => d.nom_commune === "Vieille-Toulouse");
+      if (vt) {
+        const yBrut = ySc(vt.taux_pour_mille);
+        const yEB   = ySc(vt._rateEB);
+        gAnnot.append("line")
+          .attr("x1", vt._cx).attr("y1", yBrut)
+          .attr("x2", vt._cx).attr("y2", yEB)
+          .attr("stroke", CS.green).attr("stroke-width", 1.5)
+          .attr("stroke-dasharray", "3,3");
+        gAnnot.append("circle")
+          .attr("cx", vt._cx).attr("cy", yBrut).attr("r", 3)
+          .attr("fill", "none").attr("stroke", CS.red).attr("stroke-width", 1);
+        addLabel(vt._cx + 14, yBrut - 4, ["Vieille-Toulouse 2024", "67,9 ‰ → 32,1 ‰ (lissé)"], CS.green);
+      }
+      addLabel(W - MAR.right - 6, MAR.top + 14, ["Top 10 lissé", "petites + moyennes communes"], CS.green, "end");
+    }
   }
 }
 
@@ -875,6 +1036,46 @@ d3.csv("./cambriolages_2024.csv", d => ({
     `attendu sous H0 ≈ ${Math.round(0.001 * n)} alarmes / ${Math.round(0.024 * n)} avertissements par hasard`
   );
 
+  // ── Empirical Bayes (Gamma-Poisson conjugué) ─────────────────────────────
+  // λ_i ~ Gamma(α, β),  X_i | λ_i ~ Poisson(λ_i × E_i)  où E_i = logements_i/1000.
+  // Posterior : λ_i | X_i ~ Gamma(α + X_i, β + E_i)
+  //             E[λ_i | X_i] = (α + X_i) / (β + E_i)
+  // Estimation des hyperparamètres par méthode des moments (Marshall 1991) :
+  //   ψ = ΣX_i/ΣE_i ; s² = Σ(E_i × (r_i − ψ)²)/ΣE_i ; τ² = s² − ψ/Ē ; β = ψ/τ² ; α = ψβ.
+  // Le poids du shrinkage pour la commune i est (1 − E_i/(E_i + β)) :
+  // proche de 100 % pour les villages, proche de 0 % pour les grandes villes.
+  const totalE = totalLogements / 1000;
+  const meanE  = totalE / n;
+  const psi    = rateGlobal;
+  const sSquared = data.reduce((acc, d) => {
+    const Ei = d._logements / 1000;
+    return acc + Ei * (d.taux_pour_mille - psi) * (d.taux_pour_mille - psi);
+  }, 0) / totalE;
+  const tauSquared = Math.max(psi * 0.05, sSquared - psi / meanE);
+  const ebBeta  = psi / tauSquared;
+  const ebAlpha = psi * ebBeta;
+  data.forEach(d => {
+    const Ei = d._logements / 1000;
+    d._rateEB    = (ebAlpha + d.nb_cambriolages) / (ebBeta + Ei);
+    d._shrinkPct = 1 - Ei / (Ei + ebBeta);
+  });
+  const meanShrink = data.reduce((s, d) => s + d._shrinkPct, 0) / n;
+  console.info(
+    `[EB] α=${ebAlpha.toFixed(2)}  β=${ebBeta.toFixed(2)}  τ²=${tauSquared.toFixed(2)}  ` +
+    `shrinkage moyen=${(meanShrink*100).toFixed(0)} %`
+  );
+
+  // ── Classements vivants pour le tableau comparatif ────────────────────────
+  const top10 = (arr, key) => arr.slice().sort((a, b) => b[key] - a[key]).slice(0, 10);
+  TOP_BRUT_LIVE  = top10(data, 'taux_pour_mille').map(d => d.nom_commune);
+  TOP_SEUIL_LIVE = top10(data.filter(d => d.population >= 10000), 'taux_pour_mille').map(d => d.nom_commune);
+  TOP_BAYES_LIVE = top10(data, '_rateEB').map(d => d.nom_commune);
+  // Funnel : communes en alarme, triées par p-value (plus c'est petit, plus c'est anormal)
+  TOP_FUNNEL_LIVE = data.filter(d => d._alarm)
+                        .sort((a, b) => a._pUpper - b._pUpper)
+                        .slice(0, 10)
+                        .map(d => d.nom_commune);
+
   // État initial : tous gris au repos
   curR   = new Float32Array(n).fill(C.pts[0]);
   curG   = new Float32Array(n).fill(C.pts[1]);
@@ -889,6 +1090,7 @@ d3.csv("./cambriolages_2024.csv", d => ({
   drawCanvas();
   setupHover();
   setupScrollama(data);
+  populateComparisonTable(data);
 
   window.addEventListener("resize", () => {
     buildScales();
@@ -926,6 +1128,41 @@ function setupScrollama(data) {
       }
     });
   window.addEventListener("resize", () => scroller.resize());
+}
+
+// ── Tableau comparatif des palmarès ──────────────────────────────────────
+function populateComparisonTable(data) {
+  const lists = [
+    { id: "rl-brut",   names: TOP_BRUT_LIVE,   rate: d => d.taux_pour_mille },
+    { id: "rl-seuil",  names: TOP_SEUIL_LIVE,  rate: d => d.taux_pour_mille },
+    { id: "rl-funnel", names: TOP_FUNNEL_LIVE, rate: d => d.taux_pour_mille },
+    { id: "rl-bayes",  names: TOP_BAYES_LIVE,  rate: d => d._rateEB },
+  ];
+  // Compter dans combien de classements chaque commune apparaît
+  const occurrences = {};
+  lists.forEach(L => L.names.forEach(name => {
+    occurrences[name] = (occurrences[name] || 0) + 1;
+  }));
+  // Remplir chaque <ol>
+  const fmt = v => v.toFixed(1).replace(".", ",") + " ‰";
+  lists.forEach(L => {
+    const ol = document.getElementById(L.id);
+    if (!ol) return;
+    ol.innerHTML = "";
+    L.names.forEach((name, i) => {
+      const d = data.find(x => x.nom_commune === name);
+      if (!d) return;
+      const cnt = occurrences[name];
+      const cls = cnt >= 4 ? "multi-4" : cnt === 3 ? "multi-3" : cnt === 2 ? "multi-2" : "";
+      const li = document.createElement("li");
+      if (cls) li.className = cls;
+      li.innerHTML =
+        `<span class="rank-num">${i + 1}</span>` +
+        `<span class="rank-name" title="${d.nom_commune} · ${d.population.toLocaleString("fr-FR")} hab.">${d.nom_commune}</span>` +
+        `<span class="rank-rate">${fmt(L.rate(d))}</span>`;
+      ol.appendChild(li);
+    });
+  });
 }
 
 // Mode embed : ?embed=1 masque hero/intro/méthodo/footer pour Substack

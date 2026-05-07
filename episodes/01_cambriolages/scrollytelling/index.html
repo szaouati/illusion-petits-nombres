@@ -26,6 +26,7 @@
   --col-green:      #1E8449;
   --col-funnel-95:  #C5E3F0;
   --col-funnel-998: #E8F4F8;
+  --col-orange:     #E67E22;
   --serif: 'Source Serif 4', Georgia, serif;
   --sans:  'Inter', -apple-system, sans-serif;
 }
@@ -425,9 +426,10 @@ body.embed { background: var(--col-bg); }
       <div class="card">
         <span class="step-label">Étape 7 · 7</span>
         <h3>L'entonnoir de Spiegelhalter</h3>
-        <p>Une alternative continue au seuil : tracer les marges d'erreur attendues pour chaque taille de commune (loi de Poisson). L'entonnoir s'évase à gauche — petites communes, marge énorme — et se resserre à droite.</p>
-        <p><strong style="color:var(--col-red)">Les points rouges</strong> sortent des bandes à 99,8 % : leur taux ne s'explique pas par la seule loterie statistique. Les points gris sont du bruit — fût-il spectaculaire.</p>
-        <p class="note">Méthode : Spiegelhalter (2005), <em>Statistics in Medicine</em>. Intervalles de Poisson (approximation normale) à 95 % et 99,8 %.</p>
+        <p>Sous l'hypothèse que toutes les communes partagent le taux national (6,4 ‰), on calcule pour chaque taille la fourchette des taux observables par hasard pur — loi de Poisson, calcul exact (pas d'approximation normale). Deux bandes : à 95 % (zone attendue) et à 99,8 % (zone d'alarme).</p>
+        <p><strong style="color:var(--col-red)">547 communes</strong> sortent de la bande 99,8 % par le haut, <strong style="color:var(--col-orange)">392</strong> entre 95 % et 99,8 %. Sous Poisson pur on en attendrait 11 et 263 ; l'écart mesure une vraie hétérogénéité (surdispersion φ ≈ 4,6).</p>
+        <p>Mais « hors entonnoir » veut dire « anormal en 2024 », pas « durablement élevé ». Vieille-Toulouse y figure — 10 cambriolages quand on en attendait 0,7 — son rang 2024 est statistiquement réel. Reste à savoir s'il tient en 2025 ; c'est l'étape suivante (lissage bayésien) traitée dans l'article complet.</p>
+        <p class="note">Méthode : Spiegelhalter (2005), <em>Statistics in Medicine</em>. Quantiles exacts de Poisson aux deux niveaux. φ = Σ(O−E)²/E /(n−1) mesure la surdispersion résiduelle.</p>
       </div>
     </div>
 
@@ -441,7 +443,7 @@ body.embed { background: var(--col-bg); }
   <h3>Note méthodologique</h3>
   <p><strong>Source.</strong> SSMSI, base communale 2025, publiée en février 2026 sur data.gouv.fr. Indicateur « Cambriolages de logement », année 2024. Taux pour 1 000 logements (recensement INSEE).</p>
   <p><strong>Périmètre.</strong> 10 951 communes diffusées sur 34 945 (INSEE 2025). Le SSMSI masque les communes dont l'effectif est trop faible pour être anonymisé.</p>
-  <p><strong>Entonnoir.</strong> Approximation normale des intervalles de Poisson. Pour une commune de n habitants au taux moyen national μ : borne = μ ± z·√(μ·1000/n). z = 1,96 (95 %) et z = 3,09 (99,8 %).</p>
+  <p><strong>Entonnoir.</strong> Quantiles exacts de la loi de Poisson, sans approximation normale. Pour une commune de <em>n</em> logements et un taux national moyen μ (6,4 ‰), on calcule λ₀ = μ·<em>n</em>/1000 puis les bornes par <em>qpois</em>(α/2, λ₀)·1000/<em>n</em> et <em>qpois</em>(1−α/2, λ₀)·1000/<em>n</em>. Bandes affichées : 95 % (α = 0,05) et 99,8 % (α = 0,002). Le ratio logements/habitant (≈ 0,55, INSEE) convertit l'axe X. Surdispersion estimée par la statistique de Pearson : φ = Σ(O−E)²/E /(n−1) ≈ 4,6, signe d'une hétérogénéité réelle entre communes au-delà du bruit Poisson — d'où la nécessité d'un lissage bayésien (Empirical Bayes) pour produire un classement robuste, traité dans l'article complet.</p>
   <p>Code source et données : <a href="https://github.com/szaouati/illusion-petits-nombres" target="_blank" rel="noopener">github.com/szaouati/illusion-petits-nombres</a> · Licence MIT (code) + CC BY 4.0 (contenu).</p>
 </section>
 
@@ -454,8 +456,8 @@ body.embed { background: var(--col-bg); }
 "use strict";
 
 // Couleurs RGB pour interpolation canvas ; hex pour annotations SVG
-const C  = { pts:[168,191,204], red:[192,57,43], blue:[31,78,121], green:[30,132,73] };
-const CS = { pts:"#A8BFCC", red:"#C0392B", blue:"#1F4E79", green:"#1E8449" };
+const C  = { pts:[168,191,204], red:[192,57,43], blue:[31,78,121], green:[30,132,73], orange:[230,126,34] };
+const CS = { pts:"#A8BFCC", red:"#C0392B", blue:"#1F4E79", green:"#1E8449", orange:"#E67E22" };
 
 const TOP_BRUT = [
   "Vieille-Toulouse","Saugon","Saint-Germain-du-Corbéis","Dracy-le-Fort",
@@ -488,6 +490,31 @@ let n = 0, DATA;
 let curR, curG, curB, curA, curRad;
 
 const isMobile = () => W < 560;
+
+// ── Loi de Poisson (calcul exact, sans approximation normale) ────────────
+// PMF récursive : P(X=k+1) = P(X=k) × λ/(k+1) → calcul stable pour λ < 700.
+function poissonCDF(lambda, k) {
+  if (k < 0) return 0;
+  if (lambda <= 0) return 1;
+  let term = Math.exp(-lambda), sum = term;
+  for (let i = 1; i <= k; i++) { term *= lambda / i; sum += term; }
+  return Math.min(1, sum);
+}
+// Plus petit k tel que P(X ≤ k) ≥ p, par incrémentation cumulative.
+function poissonQuantile(lambda, p) {
+  if (lambda <= 0) return 0;
+  if (p >= 1) return Math.ceil(lambda * 5 + 50);
+  let term = Math.exp(-lambda), cum = term, k = 0;
+  while (cum < p && k < 5000) {
+    k++; term *= lambda / k; cum += term;
+  }
+  return k;
+}
+// p-value queue supérieure : P(X ≥ obs | λ_0). obs entier.
+function poissonUpperTail(lambda, obs) {
+  if (obs <= 0) return 1;
+  return Math.max(0, 1 - poissonCDF(lambda, obs - 1));
+}
 
 // ── Canvas HiDPI ──────────────────────────────────────────────────────────
 function setupCanvas() {
@@ -566,24 +593,48 @@ function buildSkeleton() {
   gAnnot = svg.append("g");
 }
 
-// ── Entonnoir Spiegelhalter ────────────────────────────────────────────────
+// ── Entonnoir Spiegelhalter (intervalles Poisson exacts) ──────────────────
+// Pour chaque taille de commune (axe X = population), on convertit en logements
+// (× avgRatio) puis on calcule λ_0 = rateGlobal × logements/1000.
+// Borne haute = qpois(1−α/2, λ_0) × 1000 / logements ; borne basse symétrique.
+// Bandes affichées : 95 % (intérieure) et 99,8 % (extérieure). Pas d'approximation normale.
 function buildFunnel() {
   gFunnel.selectAll("*").remove();
 
-  const nVals = Array.from({ length: 300 }, (_, i) =>
-    Math.pow(10, Math.log10(80) + i * (Math.log10(2_800_000) - Math.log10(80)) / 299)
+  const nVals = Array.from({ length: 220 }, (_, i) =>
+    Math.pow(10, Math.log10(80) + i * (Math.log10(2_800_000) - Math.log10(80)) / 219)
   );
 
-  const makeArea = z => d3.area()
-    .x(v => xSc(v))
-    .y0(v => ySc(Math.max(-1, rateGlobal - z * Math.sqrt(rateGlobal * 1000 / (v * avgRatio)))))
-    .y1(v => ySc(Math.min(76, rateGlobal + z * Math.sqrt(rateGlobal * 1000 / (v * avgRatio)))))
-    .curve(d3.curveBasis)(nVals);
+  function bandsFor(alpha) {
+    return nVals.map(v => {
+      const log = Math.max(1, v * avgRatio);
+      const lam = rateGlobal * log / 1000;
+      const upK = poissonQuantile(lam, 1 - alpha / 2);
+      const loK = poissonQuantile(lam, alpha / 2);
+      // Conversion comptes → taux ‰ de logements
+      return {
+        v,
+        upper: Math.min(80, upK * 1000 / log),
+        lower: Math.max(0, loK * 1000 / log)
+      };
+    });
+  }
 
-  gFunnel.append("path").attr("d", makeArea(3.09))
+  const b998 = bandsFor(0.002); // bande extérieure
+  const b95  = bandsFor(0.050); // bande intérieure
+
+  const area = d3.area()
+    .x(d => xSc(d.v))
+    .y0(d => ySc(d.lower))
+    .y1(d => ySc(d.upper))
+    .curve(d3.curveStepAfter); // Poisson est discret → marches plutôt que lissage
+
+  gFunnel.append("path").attr("d", area(b998))
     .attr("fill", "var(--col-funnel-998)").attr("stroke", "none");
-  gFunnel.append("path").attr("d", makeArea(1.96))
+  gFunnel.append("path").attr("d", area(b95))
     .attr("fill", "var(--col-funnel-95)").attr("stroke", "none");
+
+  // Ligne du taux national moyen
   gFunnel.append("line")
     .attr("x1", xSc(80)).attr("x2", xSc(2_800_000))
     .attr("y1", ySc(rateGlobal)).attr("y2", ySc(rateGlobal))
@@ -720,8 +771,13 @@ function applyState(state, data, dur = 550) {
       r       = hit ? 6.5 : (d.population < 10000 ? 1 : 2);
 
     } else if (state === "funnel") {
-      const out = d.hors_entonnoir && d.taux_pour_mille > rateGlobal;
-      col = out ? C.red : C.pts; opacity = d.hors_entonnoir ? 0.85 : 0.12; r = d.hors_entonnoir ? 3.5 : 1.5;
+      if (d._alarm) {
+        col = C.red;    opacity = 0.92; r = 4.2;
+      } else if (d._warning) {
+        col = C.orange; opacity = 0.75; r = 3.0;
+      } else {
+        col = C.pts;    opacity = 0.10; r = 1.3;
+      }
     }
 
     tR[i] = col[0]; tG[i] = col[1]; tB[i] = col[2]; tA[i] = opacity; tRad[i] = r;
@@ -796,11 +852,28 @@ d3.csv("./cambriolages_2024.csv", d => ({
   // Ratio logements/habitant pour convertir l'axe X (population) en logements dans l'entonnoir
   avgRatio = totalLogements / d3.sum(data, d => d.population);
 
+  // Classification Poisson exacte (pas d'approximation normale).
+  // Pour chaque commune : H0 = la commune a le taux national ; λ_0 = rateGlobal × logements/1000.
+  // p_upper = P(X ≥ obs | λ_0). Seuils : 0,1 % (alarme) / 2,5 % (avertissement) côté supérieur.
+  let nAlarm = 0, nWarning = 0;
+  let chi2Sum = 0; // statistique de Pearson pour estimer la surdispersion φ
   data.forEach(d => {
-    const u = rateGlobal + 3.09 * Math.sqrt(rateGlobal * 1000 / d._logements);
-    const l = Math.max(0, rateGlobal - 3.09 * Math.sqrt(rateGlobal * 1000 / d._logements));
-    d.hors_entonnoir = d.taux_pour_mille > u || d.taux_pour_mille < l;
+    const lam = rateGlobal * d._logements / 1000;
+    const obs = Math.round(d.nb_cambriolages);
+    d._pUpper = poissonUpperTail(lam, obs);          // P(X ≥ obs)
+    d._alarm   = d._pUpper < 0.001 && d.taux_pour_mille > rateGlobal;
+    d._warning = !d._alarm && d._pUpper < 0.025 && d.taux_pour_mille > rateGlobal;
+    if (lam > 0) chi2Sum += (obs - lam) * (obs - lam) / lam;
+    if (d._alarm)   nAlarm++;
+    else if (d._warning) nWarning++;
   });
+  // φ = surdispersion de Pearson. φ ≈ 1 ⇒ pure Poisson. φ > 1 ⇒ hétérogénéité résiduelle.
+  const phi = chi2Sum / (n - 1);
+  console.info(
+    `[Funnel] rateGlobal=${rateGlobal.toFixed(2)}‰  φ=${phi.toFixed(2)}  ` +
+    `alarme(99,9 %)=${nAlarm}  avertissement(97,5 %)=${nWarning}  ` +
+    `attendu sous H0 ≈ ${Math.round(0.001 * n)} alarmes / ${Math.round(0.024 * n)} avertissements par hasard`
+  );
 
   // État initial : tous gris au repos
   curR   = new Float32Array(n).fill(C.pts[0]);

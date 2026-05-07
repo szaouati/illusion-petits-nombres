@@ -266,18 +266,62 @@ footer {
   .card { font-size: 15px; }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 560px) {
   .hero { padding: 40px 16px 18px; }
   h1 { font-size: clamp(22px, 6.5vw, 30px); }
   .intro p { font-size: 16px; }
   .intro p:first-child { font-size: 17px; }
-  /* Portrait phone : graphique plus haut pour exploiter l'orientation verticale */
-  .graphic-col { height: 75vw; min-height: 260px; top: 2vh; }
-  .card { font-size: 14px; padding: 14px 16px; }
+
+  /* Graphique plein écran, collé en haut */
+  .graphic-col {
+    height: 100vh;
+    top: 0;
+    z-index: 0;
+  }
+
+  /* Les cartes remontent pour chevaucher le graphique, ancrées en bas de chaque step */
+  .steps-col {
+    margin-top: -100vh;
+    padding-top: 75vh;
+    position: relative;
+    z-index: 10;
+  }
+
+  .step {
+    min-height: 100vh;
+    align-items: flex-end;
+    padding: 0 0 24px;
+  }
+
+  .card {
+    font-size: 14px;
+    padding: 14px 16px;
+    background: rgba(255,255,255,0.93);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border-radius: 6px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.12);
+    max-height: 48vh;
+    overflow-y: auto;
+  }
+
   .card h3 { font-size: 15px; }
   .big { font-size: 24px; }
-  .step { min-height: 65vh; }
   .method { font-size: 12px; }
+
+  /* Overlay d'assombrissement quand une carte est visible */
+  .graphic-inner::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0);
+    transition: background 0.35s ease;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .graphic-inner.step-active::after {
+    background: rgba(0,0,0,0.20);
+  }
 }
 
 /* ── MODE EMBED (Substack iframe, ?embed=1) ── */
@@ -435,7 +479,7 @@ let MAR = { top: 28, right: 24, bottom: 52, left: 58 }; // recalculé dans build
 
 let W, H, dpr, xSc, ySc;
 let gGrid, gFunnel, gAxes, gAnnot;
-let rateGlobal, qtree;
+let rateGlobal, avgRatio, qtree;
 let currentState = "base";
 let animId = null;
 
@@ -460,7 +504,7 @@ function buildScales() {
   setupCanvas();
   // Marges réduites sur petit écran pour maximiser la zone de données
   MAR = W < 480
-    ? { top: 16, right: 10, bottom: 38, left: 44 }
+    ? { top: 16, right: 10, bottom: 38, left: 48 }
     : { top: 28, right: 24, bottom: 52, left: 58 };
   xSc = d3.scaleLog().domain([80, 2_800_000]).range([MAR.left, W - MAR.right]);
   ySc = d3.scaleLinear().domain([-1, 76]).range([H - MAR.bottom, MAR.top]);
@@ -507,18 +551,17 @@ function buildSkeleton() {
     .call(d3.axisLeft(ySc).tickValues(yTicks))
     .selectAll("text").attr("font-size", axisFontSize);
 
-  if (!sm) {
-    svg.append("text")
-      .attr("x", (MAR.left + W - MAR.right) / 2).attr("y", H - 8)
-      .attr("text-anchor", "middle").attr("font-size", "11px").attr("fill", "#777")
-      .text("Population de la commune (échelle logarithmique)");
+  // Titres d'axe : version courte sur mobile, complète sur desktop
+  svg.append("text")
+    .attr("x", (MAR.left + W - MAR.right) / 2).attr("y", H - 2)
+    .attr("text-anchor", "middle").attr("font-size", sm ? "9px" : "11px").attr("fill", "#777")
+    .text(sm ? "Population (log)" : "Population de la commune (échelle logarithmique)");
 
-    svg.append("text")
-      .attr("transform", "rotate(-90)")
-      .attr("x", -(MAR.top + H - MAR.bottom) / 2).attr("y", 14)
-      .attr("text-anchor", "middle").attr("font-size", "11px").attr("fill", "#777")
-      .text("Cambriolages pour 1 000 logements");
-  }
+  svg.append("text")
+    .attr("transform", "rotate(-90)")
+    .attr("x", -(MAR.top + H - MAR.bottom) / 2).attr("y", sm ? 11 : 14)
+    .attr("text-anchor", "middle").attr("font-size", sm ? "9px" : "11px").attr("fill", "#777")
+    .text(sm ? "Taux ‰" : "Cambriolages pour 1 000 logements");
 
   gAnnot = svg.append("g");
 }
@@ -533,8 +576,8 @@ function buildFunnel() {
 
   const makeArea = z => d3.area()
     .x(v => xSc(v))
-    .y0(v => ySc(Math.max(-1, rateGlobal - z * Math.sqrt(rateGlobal * 1000 / v))))
-    .y1(v => ySc(Math.min(76, rateGlobal + z * Math.sqrt(rateGlobal * 1000 / v))))
+    .y0(v => ySc(Math.max(-1, rateGlobal - z * Math.sqrt(rateGlobal * 1000 / (v * avgRatio)))))
+    .y1(v => ySc(Math.min(76, rateGlobal + z * Math.sqrt(rateGlobal * 1000 / (v * avgRatio)))))
     .curve(d3.curveBasis)(nVals);
 
   gFunnel.append("path").attr("d", makeArea(3.09))
@@ -738,12 +781,24 @@ d3.csv("./cambriolages_2024.csv", d => ({
   DATA = data;
   n    = data.length;
 
-  rateGlobal = d3.sum(data, d => d.nb_cambriolages) /
-               d3.sum(data, d => d.population) * 1000;
+  // Déduire le nb de logements depuis nb_cambriolages et taux_pour_mille
+  // (taux = nb_cambriolages / logements × 1000 → logements = nb_cambriolages × 1000 / taux)
+  data.forEach(d => {
+    d._logements = (d.nb_cambriolages > 0 && d.taux_pour_mille > 0)
+      ? d.nb_cambriolages * 1000 / d.taux_pour_mille
+      : d.population / 2.2; // fallback : ratio moyen France
+  });
+  const totalLogements = d3.sum(data, d => d._logements);
+
+  // Taux national en ‰ de logements (cohérent avec les taux individuels)
+  rateGlobal = d3.sum(data, d => d.nb_cambriolages) / totalLogements * 1000;
+
+  // Ratio logements/habitant pour convertir l'axe X (population) en logements dans l'entonnoir
+  avgRatio = totalLogements / d3.sum(data, d => d.population);
 
   data.forEach(d => {
-    const u = rateGlobal + 3.09 * Math.sqrt(rateGlobal * 1000 / d.population);
-    const l = Math.max(0, rateGlobal - 3.09 * Math.sqrt(rateGlobal * 1000 / d.population));
+    const u = rateGlobal + 3.09 * Math.sqrt(rateGlobal * 1000 / d._logements);
+    const l = Math.max(0, rateGlobal - 3.09 * Math.sqrt(rateGlobal * 1000 / d._logements));
     d.hors_entonnoir = d.taux_pour_mille > u || d.taux_pour_mille < l;
   });
 
@@ -781,10 +836,22 @@ d3.csv("./cambriolages_2024.csv", d => ({
 });
 
 function setupScrollama(data) {
+  const gi = document.querySelector(".graphic-inner");
   const scroller = scrollama();
   scroller
     .setup({ step: "#scrolly .step", offset: 0.6 })
-    .onStepEnter(({ element }) => applyState(element.dataset.state, data));
+    .onStepEnter(({ element }) => {
+      applyState(element.dataset.state, data);
+      // Mobile : assombrir légèrement le graphique quand une carte est visible
+      if (window.innerWidth <= 560) gi.classList.add("step-active");
+    })
+    .onStepExit(() => {
+      // Retirer l'assombrissement si plus aucun step actif
+      if (window.innerWidth <= 560 &&
+          document.querySelectorAll("#scrolly .step.is-active").length === 0) {
+        gi.classList.remove("step-active");
+      }
+    });
   window.addEventListener("resize", () => scroller.resize());
 }
 

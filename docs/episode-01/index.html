@@ -123,10 +123,15 @@ h1 {
   position: relative;
 }
 
+/* Canvas + SVG superposés dans .graphic-inner */
+#scatter-canvas, #scatter-svg {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+}
 #scatter-svg {
-  width: 100%;
-  height: 100%;
   font-family: var(--sans);
+  pointer-events: none; /* hover géré sur canvas */
 }
 
 .steps-col  { padding-top: 5vh; }
@@ -304,6 +309,7 @@ body.embed { background: var(--col-bg); }
 
   <div class="graphic-col">
     <div class="graphic-inner">
+      <canvas id="scatter-canvas" aria-hidden="true"></canvas>
       <svg id="scatter-svg" preserveAspectRatio="xMidYMid meet"
            aria-label="Nuage de points : taux de cambriolages par commune selon la taille de la population. Interactif — survolez les points."></svg>
     </div>
@@ -402,12 +408,9 @@ body.embed { background: var(--col-bg); }
 <script>
 "use strict";
 
-const C = {
-  pts:   "#A8BFCC",
-  red:   "#C0392B",
-  blue:  "#1F4E79",
-  green: "#1E8449"
-};
+// Couleurs RGB pour interpolation canvas ; hex pour annotations SVG
+const C  = { pts:[168,191,204], red:[192,57,43], blue:[31,78,121], green:[30,132,73] };
+const CS = { pts:"#A8BFCC", red:"#C0392B", blue:"#1F4E79", green:"#1E8449" };
 
 const TOP_BRUT = [
   "Vieille-Toulouse","Saugon","Saint-Germain-du-Corbéis","Dracy-le-Fort",
@@ -423,23 +426,48 @@ const METROPOLES = [
   "Nantes","Strasbourg","Lille","Rennes","Nice"
 ];
 
-const svg = d3.select("#scatter-svg");
-const tip = d3.select("#tt");
-const MAR = { top: 28, right: 24, bottom: 52, left: 58 };
+const canvas = document.getElementById("scatter-canvas");
+const ctx    = canvas.getContext("2d");
+const svg    = d3.select("#scatter-svg");
+const tip    = d3.select("#tt");
+const MAR    = { top: 28, right: 24, bottom: 52, left: 58 };
 
-let W, H, xSc, ySc;
-let gGrid, gFunnel, gAxes, gPts, gAnnot;
-let rateGlobal;
+let W, H, dpr, xSc, ySc;
+let gGrid, gFunnel, gAxes, gAnnot;
+let rateGlobal, qtree;
 let currentState = "base";
+let animId = null;
+
+// État courant de chaque point (Float32Array pour perf)
+let n = 0, DATA;
+let curR, curG, curB, curA, curRad;
 
 const isMobile = () => W < 560;
 
+// ── Canvas HiDPI ──────────────────────────────────────────────────────────
+function setupCanvas() {
+  dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  W = rect.width; H = rect.height;
+  canvas.width  = Math.round(W * dpr);
+  canvas.height = Math.round(H * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
 // ── Échelles ──────────────────────────────────────────────────────────────
 function buildScales() {
-  const r = svg.node().getBoundingClientRect();
-  W = r.width; H = r.height;
+  setupCanvas();
   xSc = d3.scaleLog().domain([80, 2_800_000]).range([MAR.left, W - MAR.right]);
   ySc = d3.scaleLinear().domain([-1, 76]).range([H - MAR.bottom, MAR.top]);
+}
+
+// ── Coords écran précompilées + quadtree ──────────────────────────────────
+function computeCoords(data) {
+  data.forEach(d => {
+    d._cx = xSc(Math.max(80, d.population));
+    d._cy = ySc(d.taux_pour_mille);
+  });
+  qtree = d3.quadtree().x(d => d._cx).y(d => d._cy).addAll(data);
 }
 
 // ── Squelette SVG ─────────────────────────────────────────────────────────
@@ -477,7 +505,6 @@ function buildSkeleton() {
     .attr("text-anchor", "middle").attr("font-size", "11px").attr("fill", "#777")
     .text("Cambriolages pour 1 000 logements");
 
-  gPts   = svg.append("g");
   gAnnot = svg.append("g");
 }
 
@@ -490,9 +517,9 @@ function buildFunnel() {
   );
 
   const makeArea = z => d3.area()
-    .x(n => xSc(n))
-    .y0(n => ySc(Math.max(-1, rateGlobal - z * Math.sqrt(rateGlobal * 1000 / n))))
-    .y1(n => ySc(Math.min(76, rateGlobal + z * Math.sqrt(rateGlobal * 1000 / n))))
+    .x(v => xSc(v))
+    .y0(v => ySc(Math.max(-1, rateGlobal - z * Math.sqrt(rateGlobal * 1000 / v))))
+    .y1(v => ySc(Math.min(76, rateGlobal + z * Math.sqrt(rateGlobal * 1000 / v))))
     .curve(d3.curveBasis)(nVals);
 
   gFunnel.append("path").attr("d", makeArea(3.09))
@@ -502,30 +529,70 @@ function buildFunnel() {
   gFunnel.append("line")
     .attr("x1", xSc(80)).attr("x2", xSc(2_800_000))
     .attr("y1", ySc(rateGlobal)).attr("y2", ySc(rateGlobal))
-    .attr("stroke", C.blue).attr("stroke-width", 1).attr("stroke-dasharray", "4,3");
+    .attr("stroke", CS.blue).attr("stroke-width", 1).attr("stroke-dasharray", "4,3");
 }
 
-// ── Points ────────────────────────────────────────────────────────────────
-function renderPoints(data) {
-  gPts.selectAll("circle.pt")
-    .data(data, d => d.code_commune)
-    .join("circle")
-      .attr("class", "pt")
-      .attr("cx", d => xSc(Math.max(80, d.population)))
-      .attr("cy", d => ySc(d.taux_pour_mille))
-      .attr("r", 2).attr("fill", C.pts).attr("opacity", 0.45)
-      .on("pointerover", (event, d) => {
-        tip.html(
-          `<strong>${d.nom_commune}</strong> (${d.departement})<br>` +
-          `${d.population.toLocaleString("fr-FR")} hab. · ${d.nb_cambriolages} cambriolages<br>` +
-          `Taux : ${d.taux_pour_mille.toFixed(1)} ‰`
-        ).classed("on", true);
-      })
-      .on("pointermove", ev => {
-        tip.style("left", (ev.clientX + 14) + "px")
-           .style("top",  (ev.clientY + 14) + "px");
-      })
-      .on("pointerout", () => tip.classed("on", false));
+// ── Rendu canvas ──────────────────────────────────────────────────────────
+function drawCanvas() {
+  if (!DATA) return;
+  ctx.clearRect(0, 0, W, H);
+  for (let i = 0; i < n; i++) {
+    const a = curA[i];
+    if (a < 0.005) continue;
+    ctx.globalAlpha = a;
+    ctx.fillStyle   = `rgb(${curR[i]|0},${curG[i]|0},${curB[i]|0})`;
+    ctx.beginPath();
+    ctx.arc(DATA[i]._cx, DATA[i]._cy, curRad[i], 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+// ── Interpolation vers état cible (rAF, easeInOutQuad) ───────────────────
+function animateTo(tR, tG, tB, tA, tRad, dur) {
+  if (animId) cancelAnimationFrame(animId);
+  if (dur === 0) {
+    curR.set(tR); curG.set(tG); curB.set(tB); curA.set(tA); curRad.set(tRad);
+    drawCanvas(); return;
+  }
+  const sR = curR.slice(), sG = curG.slice(), sB = curB.slice();
+  const sA = curA.slice(), sRad = curRad.slice();
+  const t0 = performance.now();
+
+  function tick(now) {
+    const t = Math.min(1, (now - t0) / dur);
+    const u = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    for (let i = 0; i < n; i++) {
+      curR[i]   = sR[i]   + (tR[i]   - sR[i])   * u;
+      curG[i]   = sG[i]   + (tG[i]   - sG[i])   * u;
+      curB[i]   = sB[i]   + (tB[i]   - sB[i])   * u;
+      curA[i]   = sA[i]   + (tA[i]   - sA[i])   * u;
+      curRad[i] = sRad[i] + (tRad[i] - sRad[i]) * u;
+    }
+    drawCanvas();
+    if (t < 1) animId = requestAnimationFrame(tick);
+  }
+  animId = requestAnimationFrame(tick);
+}
+
+// ── Hover via quadtree O(log n) ───────────────────────────────────────────
+function setupHover() {
+  canvas.addEventListener("pointermove", ev => {
+    if (!qtree) return;
+    const rect = canvas.getBoundingClientRect();
+    const d = qtree.find(ev.clientX - rect.left, ev.clientY - rect.top, 20);
+    if (d) {
+      tip.html(
+        `<strong>${d.nom_commune}</strong> (${d.departement})<br>` +
+        `${d.population.toLocaleString("fr-FR")} hab. · ${d.nb_cambriolages} cambriolages<br>` +
+        `Taux : ${d.taux_pour_mille.toFixed(1)} ‰`
+      ).classed("on", true)
+        .style("left", (ev.clientX + 14) + "px")
+        .style("top",  (ev.clientY + 14) + "px");
+    } else {
+      tip.classed("on", false);
+    }
+  });
+  canvas.addEventListener("pointerout", () => tip.classed("on", false));
 }
 
 // ── Annotations inline sur le SVG ────────────────────────────────────────
@@ -553,121 +620,93 @@ function addCallout(x1, y1, x2, y2, color) {
 }
 
 // ── Machine à états ───────────────────────────────────────────────────────
-function applyState(state, data) {
+function applyState(state, data, dur = 550) {
   currentState = state;
   clearAnnot();
-  const pts = gPts.selectAll("circle.pt");
-  const T = 550;
   const mobile = isMobile();
 
-  gFunnel.transition().duration(T).attr("opacity", 0);
+  const tR   = new Float32Array(n);
+  const tG   = new Float32Array(n);
+  const tB   = new Float32Array(n);
+  const tA   = new Float32Array(n);
+  const tRad = new Float32Array(n);
 
-  if (state === "base") {
-    pts.transition().duration(T)
-      .attr("fill", C.pts).attr("opacity", 0.45).attr("r", 2);
-  }
+  gFunnel.transition().duration(dur).attr("opacity", 0);
 
-  else if (state === "vieille-toulouse") {
-    pts.transition().duration(T)
-      .attr("fill",    d => d.nom_commune === "Vieille-Toulouse" ? C.red  : C.pts)
-      .attr("opacity", d => d.nom_commune === "Vieille-Toulouse" ? 1      : 0.2)
-      .attr("r",       d => d.nom_commune === "Vieille-Toulouse" ? 8      : 1.5);
+  for (let i = 0; i < n; i++) {
+    const d = data[i];
+    let col = C.pts, opacity = 0.45, r = 2;
 
-    if (!mobile) {
-      const vt = data.find(d => d.nom_commune === "Vieille-Toulouse");
-      if (vt) {
-        const cx = xSc(vt.population), cy = ySc(vt.taux_pour_mille);
-        addCallout(cx + 6, cy - 6, cx + 24, cy - 44, C.red);
-        addLabel(cx + 26, cy - 56, ["Vieille-Toulouse", "67,9 ‰ · 1 230 hab."], C.red);
-      }
+    if (state === "vieille-toulouse") {
+      const hit = d.nom_commune === "Vieille-Toulouse";
+      col = hit ? C.red : C.pts; opacity = hit ? 1 : 0.2; r = hit ? 8 : 1.5;
+
+    } else if (state === "top10-brut") {
+      const hit = TOP_BRUT.includes(d.nom_commune);
+      col = hit ? C.red : C.pts; opacity = hit ? 0.95 : 0.18; r = hit ? 5.5 : 1.5;
+
+    } else if (state === "metropoles") {
+      const isM   = METROPOLES.includes(d.nom_commune);
+      const inTop = TOP_BRUT.includes(d.nom_commune);
+      col     = isM ? C.blue : (inTop ? C.red : C.pts);
+      opacity = isM ? 1      : (inTop ? 0.3   : 0.15);
+      r       = isM ? 7      : (inTop ? 3.5   : 1.5);
+
+    } else if (state === "seuil") {
+      col = C.pts; opacity = d.population < 10000 ? 0.04 : 0.7; r = d.population < 10000 ? 1 : 2.5;
+
+    } else if (state === "top10-corrige") {
+      const hit = TOP_CORRIGE.includes(d.nom_commune);
+      col     = hit ? C.green : C.pts;
+      opacity = hit ? 1 : (d.population < 10000 ? 0.04 : 0.3);
+      r       = hit ? 6.5 : (d.population < 10000 ? 1 : 2);
+
+    } else if (state === "funnel") {
+      const out = d.hors_entonnoir && d.taux_pour_mille > rateGlobal;
+      col = out ? C.red : C.pts; opacity = d.hors_entonnoir ? 0.85 : 0.12; r = d.hors_entonnoir ? 3.5 : 1.5;
     }
+
+    tR[i] = col[0]; tG[i] = col[1]; tB[i] = col[2]; tA[i] = opacity; tRad[i] = r;
   }
 
-  else if (state === "top10-brut") {
-    pts.transition().duration(T)
-      .attr("fill",    d => TOP_BRUT.includes(d.nom_commune) ? C.red  : C.pts)
-      .attr("opacity", d => TOP_BRUT.includes(d.nom_commune) ? 0.95   : 0.18)
-      .attr("r",       d => TOP_BRUT.includes(d.nom_commune) ? 5.5    : 1.5);
+  animateTo(tR, tG, tB, tA, tRad, dur);
 
-    if (!mobile) {
-      addLabel(W - MAR.right - 6, MAR.top + 14,
-        ["Top 10 brut", "9/10 ont < 4 000 hab."], C.red, "end");
+  // ── Annotations SVG ──────────────────────────────────────────────────────
+  if (state === "vieille-toulouse" && !mobile) {
+    const vt = data.find(d => d.nom_commune === "Vieille-Toulouse");
+    if (vt) {
+      addCallout(vt._cx + 6, vt._cy - 6, vt._cx + 24, vt._cy - 44, CS.red);
+      addLabel(vt._cx + 26, vt._cy - 56, ["Vieille-Toulouse", "67,9 ‰ · 1 230 hab."], CS.red);
     }
-  }
+  } else if (state === "top10-brut" && !mobile) {
+    addLabel(W - MAR.right - 6, MAR.top + 14, ["Top 10 brut", "9/10 ont < 4 000 hab."], CS.red, "end");
 
-  else if (state === "metropoles") {
-    pts.transition().duration(T)
-      .attr("fill",    d => METROPOLES.includes(d.nom_commune) ? C.blue
-                          : TOP_BRUT.includes(d.nom_commune)   ? C.red : C.pts)
-      .attr("opacity", d => METROPOLES.includes(d.nom_commune) ? 1
-                          : TOP_BRUT.includes(d.nom_commune)   ? 0.3 : 0.15)
-      .attr("r",       d => METROPOLES.includes(d.nom_commune) ? 7
-                          : TOP_BRUT.includes(d.nom_commune)   ? 3.5 : 1.5);
+  } else if (state === "metropoles" && !mobile) {
+    data.filter(d => METROPOLES.includes(d.nom_commune)).forEach(d => {
+      const label = d.nom_commune === "Paris" ? "Paris · 6,6 ‰" : d.nom_commune;
+      gAnnot.append("text")
+        .attr("x", d._cx + 9).attr("y", d._cy + 4)
+        .attr("font-family", "Inter, sans-serif").attr("font-size", "10px")
+        .attr("font-weight", "600").attr("fill", CS.blue).text(label);
+    });
 
-    if (!mobile) {
-      data.filter(d => METROPOLES.includes(d.nom_commune)).forEach(d => {
-        const cx = xSc(d.population), cy = ySc(d.taux_pour_mille);
-        const label = d.nom_commune === "Paris"
-          ? "Paris · 6,6 ‰" : d.nom_commune;
-        gAnnot.append("text")
-          .attr("x", cx + 9).attr("y", cy + 4)
-          .attr("font-family", "Inter, sans-serif").attr("font-size", "10px")
-          .attr("font-weight", "600").attr("fill", C.blue)
-          .text(label);
-      });
-    }
-  }
-
-  else if (state === "seuil") {
-    pts.transition().duration(T)
-      .attr("fill", C.pts)
-      .attr("opacity", d => d.population < 10000 ? 0.04 : 0.7)
-      .attr("r",       d => d.population < 10000 ? 1    : 2.5);
-
+  } else if (state === "seuil") {
     const x10k = xSc(10000);
     gAnnot.append("line")
-      .attr("x1", x10k).attr("x2", x10k)
-      .attr("y1", MAR.top).attr("y2", H - MAR.bottom)
-      .attr("stroke", "#444").attr("stroke-width", 1.5)
-      .attr("stroke-dasharray", "5,4");
-    if (!mobile) {
-      addLabel(x10k + 6, MAR.top + 14,
-        ["Seuil : 10 000 hab.", "1 116 communes retenues"], "#444");
-    }
-  }
+      .attr("x1", x10k).attr("x2", x10k).attr("y1", MAR.top).attr("y2", H - MAR.bottom)
+      .attr("stroke", "#444").attr("stroke-width", 1.5).attr("stroke-dasharray", "5,4");
+    if (!mobile) addLabel(x10k + 6, MAR.top + 14, ["Seuil : 10 000 hab.", "1 116 communes retenues"], "#444");
 
-  else if (state === "top10-corrige") {
-    pts.transition().duration(T)
-      .attr("fill",    d => TOP_CORRIGE.includes(d.nom_commune) ? C.green : C.pts)
-      .attr("opacity", d => TOP_CORRIGE.includes(d.nom_commune) ? 1
-                          : d.population < 10000 ? 0.04 : 0.3)
-      .attr("r",       d => TOP_CORRIGE.includes(d.nom_commune) ? 6.5
-                          : d.population < 10000 ? 1 : 2);
-
+  } else if (state === "top10-corrige") {
     const x10k = xSc(10000);
     gAnnot.append("line")
-      .attr("x1", x10k).attr("x2", x10k)
-      .attr("y1", MAR.top).attr("y2", H - MAR.bottom)
-      .attr("stroke", "#aaa").attr("stroke-width", 1)
-      .attr("stroke-dasharray", "4,4");
-    if (!mobile) {
-      addLabel(W - MAR.right - 6, MAR.top + 14,
-        ["Top 10 corrigé", "banlieues de métropoles + Guyane"], C.green, "end");
-    }
-  }
+      .attr("x1", x10k).attr("x2", x10k).attr("y1", MAR.top).attr("y2", H - MAR.bottom)
+      .attr("stroke", "#aaa").attr("stroke-width", 1).attr("stroke-dasharray", "4,4");
+    if (!mobile) addLabel(W - MAR.right - 6, MAR.top + 14, ["Top 10 corrigé", "banlieues de métropoles + Guyane"], CS.green, "end");
 
-  else if (state === "funnel") {
-    gFunnel.transition().duration(T + 200).attr("opacity", 1);
-    pts.transition().duration(T)
-      .attr("fill",    d => d.hors_entonnoir && d.taux_pour_mille > rateGlobal
-                            ? C.red : C.pts)
-      .attr("opacity", d => d.hors_entonnoir ? 0.85 : 0.12)
-      .attr("r",       d => d.hors_entonnoir ? 3.5  : 1.5);
-
-    if (!mobile) {
-      addLabel(W - MAR.right - 6, ySc(rateGlobal) - 6,
-        [`Taux national moyen : ${rateGlobal.toFixed(1)} ‰`], C.blue, "end");
-    }
+  } else if (state === "funnel") {
+    gFunnel.transition().duration(750).attr("opacity", 1);
+    if (!mobile) addLabel(W - MAR.right - 6, ySc(rateGlobal) - 6, ["Taux national moyen : " + rateGlobal.toFixed(1) + " ‰"], CS.blue, "end");
   }
 }
 
@@ -681,28 +720,39 @@ d3.csv("./cambriolages_2024.csv", d => ({
   taux_pour_mille: +d.taux_pour_mille
 })).then(data => {
 
+  DATA = data;
+  n    = data.length;
+
   rateGlobal = d3.sum(data, d => d.nb_cambriolages) /
                d3.sum(data, d => d.population) * 1000;
 
-  // Pré-calcul hors-entonnoir 99,8 %
   data.forEach(d => {
     const u = rateGlobal + 3.09 * Math.sqrt(rateGlobal * 1000 / d.population);
     const l = Math.max(0, rateGlobal - 3.09 * Math.sqrt(rateGlobal * 1000 / d.population));
     d.hors_entonnoir = d.taux_pour_mille > u || d.taux_pour_mille < l;
   });
 
+  // État initial : tous gris au repos
+  curR   = new Float32Array(n).fill(C.pts[0]);
+  curG   = new Float32Array(n).fill(C.pts[1]);
+  curB   = new Float32Array(n).fill(C.pts[2]);
+  curA   = new Float32Array(n).fill(0.45);
+  curRad = new Float32Array(n).fill(2);
+
   buildScales();
+  computeCoords(data);
   buildSkeleton();
   buildFunnel();
-  renderPoints(data);
+  drawCanvas();
+  setupHover();
   setupScrollama(data);
 
   window.addEventListener("resize", () => {
     buildScales();
+    computeCoords(data); // recalcule _cx/_cy et reconstruit le quadtree
     buildSkeleton();
     buildFunnel();
-    renderPoints(data);
-    applyState(currentState, data);
+    applyState(currentState, data, 0); // snap instantané
   });
 
 }).catch(() => {
